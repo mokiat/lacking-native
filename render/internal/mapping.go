@@ -28,9 +28,6 @@ func (m *Mapper[T]) Get(id uint32) T {
 }
 
 var (
-	framebuffers = newMapper[*Framebuffer]()
-	programs     = newMapper[*Program]()
-	textures     = newMapper[*Texture]()
-	buffers      = newMapper[*Buffer]()
-	vertexArrays = newMapper[*VertexArray]()
+	textures = newMapper[*Texture]()
+	buffers  = newMapper[*Buffer]()
 )
