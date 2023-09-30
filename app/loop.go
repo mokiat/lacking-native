@@ -19,6 +19,7 @@ const (
 
 func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, controller app.Controller) *loop {
 	return &loop{
+		platform:      newPlatform(),
 		locator:       locator,
 		title:         title,
 		window:        window,
@@ -41,6 +42,7 @@ func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, co
 var _ app.Window = (*loop)(nil)
 
 type loop struct {
+	platform      *platform
 	locator       resource.ReadLocator
 	title         string
 	window        *glfw.Window
@@ -115,6 +117,10 @@ func (l *loop) Run() error {
 	}
 
 	return nil
+}
+
+func (l *loop) Platform() app.Platform {
+	return l.platform
 }
 
 func (l *loop) Title() string {
@@ -264,17 +270,20 @@ func (l *loop) onGLFWKey(w *glfw.Window, key glfw.Key, scancode int, action glfw
 		return
 	}
 	var modifiers app.KeyModifierSet
-	if (mods & glfw.ModControl) == glfw.ModControl {
+	if (mods & glfw.ModControl) != 0b0 {
 		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierControl)
 	}
-	if (mods & glfw.ModShift) == glfw.ModShift {
+	if (mods & glfw.ModShift) != 0b0 {
 		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierShift)
 	}
-	if (mods & glfw.ModAlt) == glfw.ModAlt {
+	if (mods & glfw.ModAlt) != 0b0 {
 		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierAlt)
 	}
-	if (mods & glfw.ModCapsLock) == glfw.ModCapsLock {
+	if (mods & glfw.ModCapsLock) != 0b0 {
 		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierCapsLock)
+	}
+	if (mods & glfw.ModSuper) != 0b0 {
+		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierSuper)
 	}
 	l.controller.OnKeyboardEvent(l, app.KeyboardEvent{
 		Type:      eventType,
