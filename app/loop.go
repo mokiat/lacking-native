@@ -88,7 +88,7 @@ func (l *loop) Run() error {
 		}
 
 		if l.window.ShouldClose() {
-			l.controller.OnCloseRequested(l)
+			l.shouldStop = l.controller.OnCloseRequested(l)
 			l.window.SetShouldClose(false)
 		}
 
@@ -204,6 +204,19 @@ func (l *loop) SetCursorLocked(locked bool) {
 	l.updateCursorMode()
 }
 
+func (l *loop) RequestCopy(text string) {
+	glfw.SetClipboardString(text)
+}
+
+func (l *loop) RequestPaste() {
+	text := glfw.GetClipboardString()
+	l.Schedule(func() {
+		l.controller.OnClipboardEvent(l, app.ClipboardEvent{
+			Text: text,
+		})
+	})
+}
+
 func (l *loop) RenderAPI() render.API {
 	return l.renderAPI
 }
@@ -261,7 +274,7 @@ func (l *loop) onGLFWFramebufferSize(w *glfw.Window, width int, height int) {
 }
 
 func (l *loop) onGLFWKey(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	eventType, ok := keyboardEventTypeMapping[action]
+	eventType, ok := keyboardActionMapping[action]
 	if !ok {
 		return
 	}
@@ -269,69 +282,52 @@ func (l *loop) onGLFWKey(w *glfw.Window, key glfw.Key, scancode int, action glfw
 	if !ok {
 		return
 	}
-	var modifiers app.KeyModifierSet
-	if (mods & glfw.ModControl) != 0b0 {
-		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierControl)
-	}
-	if (mods & glfw.ModShift) != 0b0 {
-		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierShift)
-	}
-	if (mods & glfw.ModAlt) != 0b0 {
-		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierAlt)
-	}
-	if (mods & glfw.ModCapsLock) != 0b0 {
-		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierCapsLock)
-	}
-	if (mods & glfw.ModSuper) != 0b0 {
-		modifiers = modifiers | app.KeyModifierSet(app.KeyModifierSuper)
-	}
 	l.controller.OnKeyboardEvent(l, app.KeyboardEvent{
-		Type:      eventType,
-		Code:      keyCode,
-		Modifiers: modifiers,
+		Action: eventType,
+		Code:   keyCode,
 	})
 }
 
 func (l *loop) onGLFWChar(w *glfw.Window, char rune) {
 	l.controller.OnKeyboardEvent(l, app.KeyboardEvent{
-		Type: app.KeyboardEventTypeType,
-		Rune: char,
+		Action:    app.KeyboardActionType,
+		Character: char,
 	})
 }
 
 func (l *loop) onGLFWCursorPos(w *glfw.Window, xpos float64, ypos float64) {
 	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index: 0,
-		X:     int(xpos),
-		Y:     int(ypos),
-		Type:  app.MouseEventTypeMove,
+		Index:  0,
+		X:      int(xpos),
+		Y:      int(ypos),
+		Action: app.MouseActionMove,
 	})
 }
 
 func (l *loop) onGLFWCursorEnter(w *glfw.Window, entered bool) {
-	var eventType app.MouseEventType
+	var eventType app.MouseAction
 	if entered {
-		eventType = app.MouseEventTypeEnter
+		eventType = app.MouseActionEnter
 	} else {
-		eventType = app.MouseEventTypeLeave
+		eventType = app.MouseActionLeave
 	}
 	xpos, ypos := l.window.GetCursorPos()
 	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index: 0,
-		X:     int(xpos),
-		Y:     int(ypos),
-		Type:  eventType,
+		Index:  0,
+		X:      int(xpos),
+		Y:      int(ypos),
+		Action: eventType,
 	})
 }
 
 func (l *loop) onGLFWMouseButton(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
 	xpos, ypos := l.window.GetCursorPos()
-	var eventType app.MouseEventType
+	var eventType app.MouseAction
 	switch action {
 	case glfw.Press:
-		eventType = app.MouseEventTypeDown
+		eventType = app.MouseActionDown
 	case glfw.Release:
-		eventType = app.MouseEventTypeUp
+		eventType = app.MouseActionUp
 	}
 	var eventButton app.MouseButton
 	switch button {
@@ -346,7 +342,7 @@ func (l *loop) onGLFWMouseButton(w *glfw.Window, button glfw.MouseButton, action
 		Index:  0,
 		X:      int(xpos),
 		Y:      int(ypos),
-		Type:   eventType,
+		Action: eventType,
 		Button: eventButton,
 	})
 }
@@ -357,19 +353,19 @@ func (l *loop) onGLFWScroll(w *glfw.Window, xoff float64, yoff float64) {
 		Index:   0,
 		X:       int(xpos),
 		Y:       int(ypos),
-		Type:    app.MouseEventTypeScroll,
-		ScrollX: xoff,
-		ScrollY: yoff,
+		Action:  app.MouseActionScroll,
+		ScrollX: xoff * 20.0,
+		ScrollY: yoff * 20.0,
 	})
 }
 
 func (l *loop) onGLFWMouseDrop(w *glfw.Window, names []string) {
 	xpos, ypos := l.window.GetCursorPos()
 	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index: 0,
-		X:     int(xpos),
-		Y:     int(ypos),
-		Type:  app.MouseEventTypeDrop,
+		Index:  0,
+		X:      int(xpos),
+		Y:      int(ypos),
+		Action: app.MouseActionDrop,
 		Payload: app.FilepathPayload{
 			Paths: names,
 		},

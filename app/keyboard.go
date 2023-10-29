@@ -7,15 +7,15 @@ import (
 )
 
 var (
-	keyboardEventTypeMapping map[glfw.Action]app.KeyboardEventType
-	keyboardKeyMapping       map[glfw.Key]app.KeyCode
+	keyboardActionMapping map[glfw.Action]app.KeyboardAction
+	keyboardKeyMapping    map[glfw.Key]app.KeyCode
 )
 
 func init() {
-	keyboardEventTypeMapping = make(map[glfw.Action]app.KeyboardEventType)
-	keyboardEventTypeMapping[glfw.Press] = app.KeyboardEventTypeKeyDown
-	keyboardEventTypeMapping[glfw.Release] = app.KeyboardEventTypeKeyUp
-	keyboardEventTypeMapping[glfw.Repeat] = app.KeyboardEventTypeRepeat
+	keyboardActionMapping = make(map[glfw.Action]app.KeyboardAction)
+	keyboardActionMapping[glfw.Press] = app.KeyboardActionDown
+	keyboardActionMapping[glfw.Release] = app.KeyboardActionUp
+	keyboardActionMapping[glfw.Repeat] = app.KeyboardActionRepeat
 
 	keyboardKeyMapping = make(map[glfw.Key]app.KeyCode)
 	keyboardKeyMapping[glfw.KeyEscape] = app.KeyCodeEscape
@@ -29,6 +29,8 @@ func init() {
 	keyboardKeyMapping[glfw.KeyRightControl] = app.KeyCodeRightControl
 	keyboardKeyMapping[glfw.KeyLeftAlt] = app.KeyCodeLeftAlt
 	keyboardKeyMapping[glfw.KeyRightAlt] = app.KeyCodeRightAlt
+	keyboardKeyMapping[glfw.KeyLeftSuper] = app.KeyCodeLeftSuper
+	keyboardKeyMapping[glfw.KeyRightSuper] = app.KeyCodeRightSuper
 	keyboardKeyMapping[glfw.KeyBackspace] = app.KeyCodeBackspace
 	keyboardKeyMapping[glfw.KeyInsert] = app.KeyCodeInsert
 	keyboardKeyMapping[glfw.KeyDelete] = app.KeyCodeDelete

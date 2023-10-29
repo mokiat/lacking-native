@@ -18,6 +18,10 @@ type platform struct {
 
 var _ app.Platform = (*platform)(nil)
 
+func (p *platform) Environment() app.Environment {
+	return app.EnvironmentNative
+}
+
 func (p *platform) OS() app.OS {
 	return p.os
 }
