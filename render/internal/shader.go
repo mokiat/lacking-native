@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/mokiat/lacking/log"
 	"github.com/mokiat/lacking/render"
 )
 
@@ -16,7 +15,7 @@ func NewVertexShader(info render.ShaderInfo) *Shader {
 	}
 	shader.setSourceCode(info.SourceCode)
 	if err := shader.compile(); err != nil {
-		log.Error("Shader compilation error: %v", err)
+		logger.Error("Shader compilation error: %v!", err)
 	}
 	return shader
 }
@@ -27,7 +26,7 @@ func NewFragmentShader(info render.ShaderInfo) *Shader {
 	}
 	shader.setSourceCode(info.SourceCode)
 	if err := shader.compile(); err != nil {
-		log.Error("Shader compilation error: %v", err)
+		logger.Error("Shader compilation error: %v!", err)
 	}
 	return shader
 }

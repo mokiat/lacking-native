@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/mokiat/lacking/log"
 	"github.com/mokiat/lacking/render"
 )
 
@@ -23,7 +22,7 @@ func NewProgram(info render.ProgramInfo) *Program {
 		defer gl.DetachShader(program.id, fragmentShader.id)
 	}
 	if err := program.link(); err != nil {
-		log.Error("Program link error: %v", err)
+		logger.Error("Program link error: %v!", err)
 	}
 	if len(info.TextureBindings) > 0 {
 		gl.UseProgram(program.id)
