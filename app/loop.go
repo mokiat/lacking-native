@@ -8,6 +8,7 @@ import (
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/audio"
+	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/util/resource"
 )
@@ -104,8 +105,17 @@ func (l *loop) Run() error {
 
 		if l.shouldDraw {
 			l.shouldDraw = false
+			metric.BeginFrame()
+
+			ctrlRegion := metric.BeginRegion("controller")
 			l.controller.OnRender(l)
+			ctrlRegion.End()
+
+			swapRegion := metric.BeginRegion("swap")
 			l.window.SwapBuffers()
+			swapRegion.End()
+
+			metric.EndFrame()
 		}
 	}
 

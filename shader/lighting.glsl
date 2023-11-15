@@ -121,6 +121,14 @@ vec3 calculateDirectionalHDR(directionalSetup s)
 	return (reflectedHDR + refractedHDR) * s.lightIntensity * clamp(dot(s.normal, s.lightDirection), 0.0, 1.0);
 }
 
+float textureClampToBorder(sampler2DShadow tex, vec3 coord, float dValue)
+{
+	if (coord.x < 0.0 || coord.x > 1.0 || coord.y < 0.0 || coord.y > 1.0) {
+		return dValue;
+	}
+	return texture(tex, coord);
+}
+
 struct ShadowSetup
 {
 	mat4 lightProjectionMatrix;
@@ -158,11 +166,11 @@ float shadowAttenuation(sampler2DShadow shadowTex, ShadowSetup s)
 	float smoothness = 0.0;
 	for (int i = 0; i < 9; i++) {
 		vec3 offset = vec3(shifts[i] / vec2(4096), 0.0);
-		smoothness += texture(shadowTex, shadowUVPosition.xyz + offset);
+		smoothness += textureClampToBorder(shadowTex, shadowUVPosition.xyz + offset, 1.0);
 	}
 	smoothness /= 9.0;
 
-	float amount = texture(shadowTex, shadowUVPosition.xyz);
+	float amount = textureClampToBorder(shadowTex, shadowUVPosition.xyz, 1.0);
 	amount *= smoothness;
 	return amount;
 }

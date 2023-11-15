@@ -10,12 +10,6 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"github.com/mokiat/lacking/app"
-	"github.com/mokiat/lacking/log"
-)
-
-var (
-	appLogger = log.Path("/lacking-native/app")
-	glLogger  = appLogger.Path("/opengl")
 )
 
 // Run starts a new application and opens a single window.
@@ -96,7 +90,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		return fmt.Errorf("failed to initialize opengl: %w", err)
 	}
 
-	if glLogger.DebugEnabled() {
+	if glLogger.IsDebugEnabled() {
 		gl.Enable(gl.DEBUG_OUTPUT)
 		gl.DebugMessageCallback(func(source uint32, gltype uint32, id uint32, severity uint32, length int32, message string, userParam unsafe.Pointer) {
 			switch severity {
