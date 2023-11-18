@@ -42,9 +42,10 @@ func Run(cfg *Config, controller app.Controller) error {
 		windowFlags |= sdl.WINDOW_MAXIMIZED
 	}
 
+	sdl.GLSetAttribute(sdl.GL_ACCELERATED_VISUAL, 1)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 4)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 4)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_CORE, 1)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_FORWARD_COMPATIBLE_FLAG, 1)
 	sdl.GLSetAttribute(sdl.GL_FRAMEBUFFER_SRGB_CAPABLE, 1)
 
