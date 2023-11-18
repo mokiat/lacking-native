@@ -381,7 +381,7 @@ func (l *loop) onMouseWheel(event *sdl.MouseWheelEvent) {
 		X:       int(xpos),
 		Y:       int(ypos),
 		Action:  app.MouseActionScroll,
-		ScrollX: float64(event.PreciseX) * 20.0,
+		ScrollX: -float64(event.PreciseX) * 20.0,
 		ScrollY: float64(event.PreciseY) * 20.0,
 	})
 }
