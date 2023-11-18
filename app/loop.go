@@ -2,15 +2,18 @@ package app
 
 import (
 	"fmt"
+	"image"
+	"image/draw"
 	"time"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/audio"
+	"github.com/mokiat/lacking/debug/log"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/util/resource"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -18,7 +21,7 @@ const (
 	taskProcessingTimeout = 30 * time.Millisecond
 )
 
-func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, controller app.Controller) *loop {
+func newLoop(locator resource.ReadLocator, title string, window *sdl.Window, controller app.Controller) *loop {
 	return &loop{
 		platform:      newPlatform(),
 		locator:       locator,
@@ -32,10 +35,10 @@ func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, co
 		cursorVisible: true,
 		cursorLocked:  false,
 		gamepads: [4]*Gamepad{
-			newGamepad(glfw.Joystick1),
-			newGamepad(glfw.Joystick2),
-			newGamepad(glfw.Joystick3),
-			newGamepad(glfw.Joystick4),
+			newGamepad(0),
+			newGamepad(1),
+			newGamepad(2),
+			newGamepad(3),
 		},
 	}
 }
@@ -46,7 +49,7 @@ type loop struct {
 	platform      *platform
 	locator       resource.ReadLocator
 	title         string
-	window        *glfw.Window
+	window        *sdl.Window
 	controller    app.Controller
 	renderAPI     render.API
 	tasks         chan func()
@@ -61,36 +64,22 @@ type loop struct {
 func (l *loop) Run() error {
 	l.controller.OnCreate(l)
 
-	l.window.SetRefreshCallback(l.onGLFWRefresh)
-
-	l.window.SetSizeCallback(l.onGLFWSize)
 	width, height := l.window.GetSize()
-	l.onGLFWSize(l.window, width, height)
+	l.onSizeChanged(int(width), int(height))
 
-	l.window.SetFramebufferSizeCallback(l.onGLFWFramebufferSize)
-	width, height = l.window.GetFramebufferSize()
-	l.onGLFWFramebufferSize(l.window, width, height)
-
-	l.window.SetKeyCallback(l.onGLFWKey)
-	l.window.SetCharCallback(l.onGLFWChar)
-
-	l.window.SetCursorPosCallback(l.onGLFWCursorPos)
-	l.window.SetCursorEnterCallback(l.onGLFWCursorEnter)
-	l.window.SetMouseButtonCallback(l.onGLFWMouseButton)
-	l.window.SetScrollCallback(l.onGLFWScroll)
-	l.window.SetDropCallback(l.onGLFWMouseDrop)
+	width, height = l.window.GLGetDrawableSize()
+	l.onFramebufferSizeChanged(int(width), int(height))
 
 	for !l.shouldStop {
 		if l.shouldWake {
 			l.shouldWake = false
-			glfw.PollEvents()
+			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+				l.handleEvent(event)
+			}
 		} else {
-			glfw.WaitEvents()
-		}
-
-		if l.window.ShouldClose() {
-			l.shouldStop = l.controller.OnCloseRequested(l)
-			l.window.SetShouldClose(false)
+			for event := sdl.WaitEvent(); event != nil; event = sdl.PollEvent() {
+				l.handleEvent(event)
+			}
 		}
 
 		for _, gamepad := range l.gamepads {
@@ -112,7 +101,7 @@ func (l *loop) Run() error {
 			ctrlRegion.End()
 
 			swapRegion := metric.BeginRegion("swap")
-			l.window.SwapBuffers()
+			l.window.GLSwap()
 			swapRegion.End()
 
 			metric.EndFrame()
@@ -143,15 +132,17 @@ func (l *loop) SetTitle(title string) {
 }
 
 func (l *loop) Size() (int, int) {
-	return l.window.GetSize()
+	width, height := l.window.GetSize()
+	return int(width), int(height)
 }
 
 func (l *loop) SetSize(width, height int) {
-	l.window.SetSize(width, height)
+	l.window.SetSize(int32(width), int32(height))
 }
 
 func (l *loop) FramebufferSize() (int, int) {
-	return l.window.GetFramebufferSize()
+	width, height := l.window.GLGetDrawableSize()
+	return int(width), int(height)
 }
 
 func (l *loop) Gamepads() [4]app.Gamepad {
@@ -165,7 +156,7 @@ func (l *loop) Gamepads() [4]app.Gamepad {
 func (l *loop) Schedule(fn func()) {
 	select {
 	case l.tasks <- fn:
-		glfw.PostEmptyEvent()
+		sdl.PushEvent(&sdl.UserEvent{})
 	default:
 		panic(fmt.Errorf("failed to queue task; queue is full"))
 	}
@@ -176,7 +167,7 @@ func (l *loop) Invalidate() {
 		l.shouldDraw = true
 		if !l.shouldWake {
 			l.shouldWake = true
-			glfw.PostEmptyEvent()
+			sdl.PushEvent(&sdl.UserEvent{})
 		}
 	}
 }
@@ -186,17 +177,26 @@ func (l *loop) CreateCursor(definition app.CursorDefinition) app.Cursor {
 	if err != nil {
 		panic(fmt.Errorf("failed to open cursor %q: %w", definition.Path, err))
 	}
+	bounds := img.Bounds()
+
+	surface, err := sdl.CreateRGBSurfaceWithFormat(0, int32(bounds.Dx()), int32(bounds.Dy()), 32, sdl.PIXELFORMAT_RGBA8888)
+	if err != nil {
+		panic(fmt.Errorf("error creating surface: %v", err))
+	}
+	draw.Draw(WrapSurface(surface), surface.Bounds(), img, image.Point{}, draw.Src)
+
 	return &customCursor{
-		cursor: glfw.CreateCursor(img, definition.HotspotX, definition.HotspotY),
+		surface: surface,
+		cursor:  sdl.CreateColorCursor(surface, int32(definition.HotspotX), int32(definition.HotspotY)),
 	}
 }
 
 func (l *loop) UseCursor(cursor app.Cursor) {
 	switch cursor := cursor.(type) {
 	case *customCursor:
-		l.window.SetCursor(cursor.cursor)
+		sdl.SetCursor(cursor.cursor)
 	default:
-		l.window.SetCursor(nil)
+		sdl.SetCursor(nil)
 	}
 }
 
@@ -215,11 +215,15 @@ func (l *loop) SetCursorLocked(locked bool) {
 }
 
 func (l *loop) RequestCopy(text string) {
-	glfw.SetClipboardString(text)
+	sdl.SetClipboardText(text)
 }
 
 func (l *loop) RequestPaste() {
-	text := glfw.GetClipboardString()
+	text, err := sdl.GetClipboardText()
+	if err != nil {
+		log.Error("Error getting clipboard text: %v", err)
+		return
+	}
 	l.Schedule(func() {
 		l.controller.OnClipboardEvent(l, app.ClipboardEvent{
 			Text: text,
@@ -238,18 +242,21 @@ func (l *loop) AudioAPI() audio.API {
 func (l *loop) Close() {
 	if !l.shouldStop {
 		l.shouldStop = true
-		glfw.PostEmptyEvent()
+		sdl.PushEvent(&sdl.UserEvent{})
 	}
 }
 
 func (l *loop) updateCursorMode() {
 	switch {
 	case l.cursorLocked:
-		l.window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
+		l.window.SetGrab(true)
+		sdl.ShowCursor(0)
 	case l.cursorVisible:
-		l.window.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
+		l.window.SetGrab(false)
+		sdl.ShowCursor(1)
 	default:
-		l.window.SetInputMode(glfw.CursorMode, glfw.CursorHidden)
+		l.window.SetGrab(false)
+		sdl.ShowCursor(0)
 	}
 }
 
@@ -270,25 +277,137 @@ func (l *loop) processTasks(limit time.Duration) bool {
 	return false
 }
 
-func (l *loop) onGLFWRefresh(w *glfw.Window) {
-	l.controller.OnRender(l)
-	l.window.SwapBuffers()
+func (l *loop) handleEvent(event sdl.Event) {
+	switch event := event.(type) {
+	case *sdl.QuitEvent:
+		l.onQuit()
+	case *sdl.WindowEvent:
+		l.onWindowEvent(event)
+	case *sdl.MouseMotionEvent:
+		l.onMouseMotion(event)
+	case *sdl.MouseButtonEvent:
+		l.onMouseButton(event)
+	case *sdl.MouseWheelEvent:
+		l.onMouseWheel(event)
+	case *sdl.DropEvent:
+		l.onDrop(event)
+	case *sdl.KeyboardEvent:
+		l.onKeyboard(event)
+	case *sdl.TextInputEvent:
+		l.onTextInput(event)
+	case *sdl.ControllerDeviceEvent:
+		l.onControllerEvent(event)
+	}
 }
 
-func (l *loop) onGLFWSize(w *glfw.Window, width int, height int) {
-	l.controller.OnResize(l, width, height)
+func (l *loop) onQuit() {
+	l.shouldStop = l.controller.OnCloseRequested(l)
 }
 
-func (l *loop) onGLFWFramebufferSize(w *glfw.Window, width int, height int) {
-	l.controller.OnFramebufferResize(l, width, height)
+func (l *loop) onWindowEvent(event *sdl.WindowEvent) {
+	switch event.Event {
+	case sdl.WINDOWEVENT_RESIZED:
+		width, height := l.window.GetSize()
+		l.onSizeChanged(int(width), int(height))
+		width, height = l.window.GLGetDrawableSize()
+		l.onFramebufferSizeChanged(int(width), int(height))
+
+	case sdl.WINDOWEVENT_ENTER:
+		xpos, ypos, _ := sdl.GetMouseState()
+		l.controller.OnMouseEvent(l, app.MouseEvent{
+			Index:  0,
+			X:      int(xpos),
+			Y:      int(ypos),
+			Action: app.MouseActionEnter,
+		})
+
+	case sdl.WINDOWEVENT_LEAVE:
+		xpos, ypos, _ := sdl.GetMouseState()
+		l.controller.OnMouseEvent(l, app.MouseEvent{
+			Index:  0,
+			X:      int(xpos),
+			Y:      int(ypos),
+			Action: app.MouseActionLeave,
+		})
+
+	case sdl.WINDOWEVENT_SHOWN:
+		l.controller.OnRender(l)
+		l.window.GLSwap()
+	}
 }
 
-func (l *loop) onGLFWKey(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	eventType, ok := keyboardActionMapping[action]
+func (l *loop) onMouseMotion(event *sdl.MouseMotionEvent) {
+	l.controller.OnMouseEvent(l, app.MouseEvent{
+		Index:  0,
+		X:      int(event.X),
+		Y:      int(event.Y),
+		Action: app.MouseActionMove,
+	})
+}
+
+func (l *loop) onMouseButton(event *sdl.MouseButtonEvent) {
+	var eventType app.MouseAction
+	switch event.Type {
+	case sdl.MOUSEBUTTONDOWN:
+		eventType = app.MouseActionDown
+	case sdl.MOUSEBUTTONUP:
+		eventType = app.MouseActionUp
+	}
+
+	var eventButton app.MouseButton
+	switch event.Button {
+	case sdl.BUTTON_LEFT:
+		eventButton = app.MouseButtonLeft
+	case sdl.BUTTON_RIGHT:
+		eventButton = app.MouseButtonRight
+	case sdl.BUTTON_MIDDLE:
+		eventButton = app.MouseButtonMiddle
+	}
+
+	l.controller.OnMouseEvent(l, app.MouseEvent{
+		Index:  0,
+		X:      int(event.X),
+		Y:      int(event.Y),
+		Action: eventType,
+		Button: eventButton,
+	})
+}
+
+func (l *loop) onMouseWheel(event *sdl.MouseWheelEvent) {
+	xpos, ypos, _ := sdl.GetMouseState()
+
+	l.controller.OnMouseEvent(l, app.MouseEvent{
+		Index:   0,
+		X:       int(xpos),
+		Y:       int(ypos),
+		Action:  app.MouseActionScroll,
+		ScrollX: float64(event.PreciseX) * 20.0,
+		ScrollY: float64(event.PreciseY) * 20.0,
+	})
+}
+
+func (l *loop) onDrop(event *sdl.DropEvent) {
+	if event.Type != sdl.DROPFILE {
+		return
+	}
+	xpos, ypos, _ := sdl.GetMouseState()
+	l.controller.OnMouseEvent(l, app.MouseEvent{
+		Index:  0,
+		X:      int(xpos),
+		Y:      int(ypos),
+		Action: app.MouseActionDrop,
+		Payload: app.FilepathPayload{
+			Paths: []string{event.File},
+		},
+	})
+}
+
+func (l *loop) onKeyboard(event *sdl.KeyboardEvent) {
+	eventType, ok := keyboardActionMapping[event.Type]
 	if !ok {
 		return
 	}
-	keyCode, ok := keyboardKeyMapping[key]
+	keyCode, ok := keyboardKeyMapping[event.Keysym.Scancode]
 	if !ok {
 		return
 	}
@@ -298,86 +417,35 @@ func (l *loop) onGLFWKey(w *glfw.Window, key glfw.Key, scancode int, action glfw
 	})
 }
 
-func (l *loop) onGLFWChar(w *glfw.Window, char rune) {
-	l.controller.OnKeyboardEvent(l, app.KeyboardEvent{
-		Action:    app.KeyboardActionType,
-		Character: char,
-	})
-}
-
-func (l *loop) onGLFWCursorPos(w *glfw.Window, xpos float64, ypos float64) {
-	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
-		Action: app.MouseActionMove,
-	})
-}
-
-func (l *loop) onGLFWCursorEnter(w *glfw.Window, entered bool) {
-	var eventType app.MouseAction
-	if entered {
-		eventType = app.MouseActionEnter
-	} else {
-		eventType = app.MouseActionLeave
+func (l *loop) onTextInput(event *sdl.TextInputEvent) {
+	for _, char := range event.GetText() {
+		l.controller.OnKeyboardEvent(l, app.KeyboardEvent{
+			Action:    app.KeyboardActionType,
+			Character: char,
+		})
 	}
-	xpos, ypos := l.window.GetCursorPos()
-	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
-		Action: eventType,
-	})
 }
 
-func (l *loop) onGLFWMouseButton(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-	xpos, ypos := l.window.GetCursorPos()
-	var eventType app.MouseAction
-	switch action {
-	case glfw.Press:
-		eventType = app.MouseActionDown
-	case glfw.Release:
-		eventType = app.MouseActionUp
+func (l *loop) onControllerEvent(event *sdl.ControllerDeviceEvent) {
+	switch event.Type {
+	case sdl.CONTROLLERDEVICEADDED:
+		if event.Which >= 0 && event.Which < 4 {
+			l.gamepads[0].controller = sdl.GameControllerOpen(int(event.Which))
+		}
+	case sdl.CONTROLLERDEVICEREMOVED:
+		for _, gamepad := range l.gamepads {
+			if gamepad.hasInstanceID(event.Which) {
+				gamepad.controller.Close()
+				gamepad.controller = nil
+			}
+		}
 	}
-	var eventButton app.MouseButton
-	switch button {
-	case glfw.MouseButton1:
-		eventButton = app.MouseButtonLeft
-	case glfw.MouseButton2:
-		eventButton = app.MouseButtonRight
-	case glfw.MouseButton3:
-		eventButton = app.MouseButtonMiddle
-	}
-	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
-		Action: eventType,
-		Button: eventButton,
-	})
 }
 
-func (l *loop) onGLFWScroll(w *glfw.Window, xoff float64, yoff float64) {
-	xpos, ypos := l.window.GetCursorPos()
-	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index:   0,
-		X:       int(xpos),
-		Y:       int(ypos),
-		Action:  app.MouseActionScroll,
-		ScrollX: xoff * 20.0,
-		ScrollY: yoff * 20.0,
-	})
+func (l *loop) onSizeChanged(width int, height int) {
+	l.controller.OnResize(l, width, height)
 }
 
-func (l *loop) onGLFWMouseDrop(w *glfw.Window, names []string) {
-	xpos, ypos := l.window.GetCursorPos()
-	l.controller.OnMouseEvent(l, app.MouseEvent{
-		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
-		Action: app.MouseActionDrop,
-		Payload: app.FilepathPayload{
-			Paths: names,
-		},
-	})
+func (l *loop) onFramebufferSizeChanged(width int, height int) {
+	l.controller.OnFramebufferResize(l, width, height)
 }
