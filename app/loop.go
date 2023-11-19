@@ -6,7 +6,8 @@ import (
 	"image/draw"
 	"time"
 
-	glrender "github.com/mokiat/lacking-native/render"
+	nataudio "github.com/mokiat/lacking-native/audio"
+	natrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/audio"
 	"github.com/mokiat/lacking/debug/log"
@@ -28,7 +29,8 @@ func newLoop(locator resource.ReadLocator, title string, window *sdl.Window, con
 		title:         title,
 		window:        window,
 		controller:    controller,
-		renderAPI:     glrender.NewAPI(),
+		renderAPI:     natrender.NewAPI(),
+		audioAPI:      nataudio.NewAPI(),
 		tasks:         make(chan func(), taskQueueSize),
 		shouldStop:    false,
 		shouldDraw:    true,
@@ -52,6 +54,7 @@ type loop struct {
 	window        *sdl.Window
 	controller    app.Controller
 	renderAPI     render.API
+	audioAPI      audio.API
 	tasks         chan func()
 	shouldStop    bool
 	shouldDraw    bool
@@ -236,7 +239,7 @@ func (l *loop) RenderAPI() render.API {
 }
 
 func (l *loop) AudioAPI() audio.API {
-	return nil // TODO
+	return l.audioAPI
 }
 
 func (l *loop) Close() {

@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/veandco/go-sdl2/mix"
 	"github.com/veandco/go-sdl2/sdl"
 
 	"github.com/mokiat/lacking/app"
@@ -29,6 +30,16 @@ func Run(cfg *Config, controller app.Controller) error {
 		return fmt.Errorf("error initializing SDL2: %w", err)
 	}
 	defer sdl.Quit()
+
+	if err := mix.Init(mix.INIT_MP3); err != nil {
+		return fmt.Errorf("error initializing SDL2 MP3 mixer: %w", err)
+	}
+	defer mix.Quit()
+
+	if err := mix.OpenAudio(44100, mix.DEFAULT_FORMAT, 2, 4096); err != nil {
+		return fmt.Errorf("error opening audio device: %w", err)
+	}
+	defer mix.CloseAudio()
 
 	var (
 		windowWidth  = cfg.width
