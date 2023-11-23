@@ -66,7 +66,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		sdl.WINDOWPOS_UNDEFINED,
 		int32(windowWidth),
 		int32(windowHeight),
-		uint32(windowFlags),
+		windowFlags,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create glfw window: %w", err)
@@ -103,12 +103,12 @@ func Run(cfg *Config, controller app.Controller) error {
 		}
 		bounds := img.Bounds()
 
-		surface, err := sdl.CreateRGBSurfaceWithFormat(0, int32(bounds.Dx()), int32(bounds.Dy()), 32, sdl.PIXELFORMAT_RGBA8888)
+		surface, err := sdl.CreateRGBSurfaceWithFormat(0, int32(bounds.Dx()), int32(bounds.Dy()), 32, uint32(sdl.PIXELFORMAT_RGBA8888))
 		if err != nil {
 			return fmt.Errorf("error creating surface: %v", err)
 		}
-		draw.Draw(WrapSurface(surface), surface.Bounds(), img, image.Point{}, draw.Src)
 		defer surface.Free()
+		draw.Draw(surface, surface.Bounds(), img, image.Point{}, draw.Src)
 
 		window.SetIcon(surface)
 	}

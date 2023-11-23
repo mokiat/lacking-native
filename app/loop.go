@@ -182,11 +182,11 @@ func (l *loop) CreateCursor(definition app.CursorDefinition) app.Cursor {
 	}
 	bounds := img.Bounds()
 
-	surface, err := sdl.CreateRGBSurfaceWithFormat(0, int32(bounds.Dx()), int32(bounds.Dy()), 32, sdl.PIXELFORMAT_RGBA8888)
+	surface, err := sdl.CreateRGBSurfaceWithFormat(0, int32(bounds.Dx()), int32(bounds.Dy()), 32, uint32(sdl.PIXELFORMAT_RGBA8888))
 	if err != nil {
 		panic(fmt.Errorf("error creating surface: %v", err))
 	}
-	draw.Draw(WrapSurface(surface), surface.Bounds(), img, image.Point{}, draw.Src)
+	draw.Draw(surface, surface.Bounds(), img, image.Point{}, draw.Src)
 
 	return &customCursor{
 		surface: surface,
@@ -282,23 +282,23 @@ func (l *loop) processTasks(limit time.Duration) bool {
 
 func (l *loop) handleEvent(event sdl.Event) {
 	switch event := event.(type) {
-	case *sdl.QuitEvent:
+	case sdl.QuitEvent:
 		l.onQuit()
-	case *sdl.WindowEvent:
+	case sdl.WindowEvent:
 		l.onWindowEvent(event)
-	case *sdl.MouseMotionEvent:
+	case sdl.MouseMotionEvent:
 		l.onMouseMotion(event)
-	case *sdl.MouseButtonEvent:
+	case sdl.MouseButtonEvent:
 		l.onMouseButton(event)
-	case *sdl.MouseWheelEvent:
+	case sdl.MouseWheelEvent:
 		l.onMouseWheel(event)
-	case *sdl.DropEvent:
+	case sdl.DropEvent:
 		l.onDrop(event)
-	case *sdl.KeyboardEvent:
+	case sdl.KeyboardEvent:
 		l.onKeyboard(event)
-	case *sdl.TextInputEvent:
+	case sdl.TextInputEvent:
 		l.onTextInput(event)
-	case *sdl.ControllerDeviceEvent:
+	case sdl.ControllerDeviceEvent:
 		l.onControllerEvent(event)
 	}
 }
@@ -307,7 +307,7 @@ func (l *loop) onQuit() {
 	l.shouldStop = l.controller.OnCloseRequested(l)
 }
 
-func (l *loop) onWindowEvent(event *sdl.WindowEvent) {
+func (l *loop) onWindowEvent(event sdl.WindowEvent) {
 	switch event.Event {
 	case sdl.WINDOWEVENT_RESIZED:
 		width, height := l.window.GetSize()
@@ -339,7 +339,7 @@ func (l *loop) onWindowEvent(event *sdl.WindowEvent) {
 	}
 }
 
-func (l *loop) onMouseMotion(event *sdl.MouseMotionEvent) {
+func (l *loop) onMouseMotion(event sdl.MouseMotionEvent) {
 	l.controller.OnMouseEvent(l, app.MouseEvent{
 		Index:  0,
 		X:      int(event.X),
@@ -348,7 +348,7 @@ func (l *loop) onMouseMotion(event *sdl.MouseMotionEvent) {
 	})
 }
 
-func (l *loop) onMouseButton(event *sdl.MouseButtonEvent) {
+func (l *loop) onMouseButton(event sdl.MouseButtonEvent) {
 	var eventType app.MouseAction
 	switch event.Type {
 	case sdl.MOUSEBUTTONDOWN:
@@ -359,11 +359,11 @@ func (l *loop) onMouseButton(event *sdl.MouseButtonEvent) {
 
 	var eventButton app.MouseButton
 	switch event.Button {
-	case sdl.BUTTON_LEFT:
+	case sdl.ButtonLeft:
 		eventButton = app.MouseButtonLeft
-	case sdl.BUTTON_RIGHT:
+	case sdl.ButtonRight:
 		eventButton = app.MouseButtonRight
-	case sdl.BUTTON_MIDDLE:
+	case sdl.ButtonMiddle:
 		eventButton = app.MouseButtonMiddle
 	}
 
@@ -376,7 +376,7 @@ func (l *loop) onMouseButton(event *sdl.MouseButtonEvent) {
 	})
 }
 
-func (l *loop) onMouseWheel(event *sdl.MouseWheelEvent) {
+func (l *loop) onMouseWheel(event sdl.MouseWheelEvent) {
 	xpos, ypos, _ := sdl.GetMouseState()
 
 	l.controller.OnMouseEvent(l, app.MouseEvent{
@@ -389,7 +389,7 @@ func (l *loop) onMouseWheel(event *sdl.MouseWheelEvent) {
 	})
 }
 
-func (l *loop) onDrop(event *sdl.DropEvent) {
+func (l *loop) onDrop(event sdl.DropEvent) {
 	if event.Type != sdl.DROPFILE {
 		return
 	}
@@ -405,7 +405,7 @@ func (l *loop) onDrop(event *sdl.DropEvent) {
 	})
 }
 
-func (l *loop) onKeyboard(event *sdl.KeyboardEvent) {
+func (l *loop) onKeyboard(event sdl.KeyboardEvent) {
 	eventType, ok := keyboardActionMapping[event.Type]
 	if !ok {
 		return
@@ -420,7 +420,7 @@ func (l *loop) onKeyboard(event *sdl.KeyboardEvent) {
 	})
 }
 
-func (l *loop) onTextInput(event *sdl.TextInputEvent) {
+func (l *loop) onTextInput(event sdl.TextInputEvent) {
 	for _, char := range event.GetText() {
 		l.controller.OnKeyboardEvent(l, app.KeyboardEvent{
 			Action:    app.KeyboardActionType,
@@ -429,7 +429,7 @@ func (l *loop) onTextInput(event *sdl.TextInputEvent) {
 	}
 }
 
-func (l *loop) onControllerEvent(event *sdl.ControllerDeviceEvent) {
+func (l *loop) onControllerEvent(event sdl.ControllerDeviceEvent) {
 	switch event.Type {
 	case sdl.CONTROLLERDEVICEADDED:
 		if event.Which >= 0 && event.Which < 4 {

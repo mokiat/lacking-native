@@ -19,3 +19,5 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/text v0.13.0 // indirect
 )
+
+replace github.com/veandco/go-sdl2 => /home/momchil/Downloads/go-sdl2

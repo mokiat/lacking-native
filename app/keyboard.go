@@ -6,12 +6,12 @@ import (
 )
 
 var (
-	keyboardActionMapping map[uint32]app.KeyboardAction
+	keyboardActionMapping map[sdl.EventType]app.KeyboardAction
 	keyboardKeyMapping    map[sdl.Scancode]app.KeyCode
 )
 
 func init() {
-	keyboardActionMapping = make(map[uint32]app.KeyboardAction)
+	keyboardActionMapping = make(map[sdl.EventType]app.KeyboardAction)
 	keyboardActionMapping[sdl.KEYDOWN] = app.KeyboardActionDown
 	keyboardActionMapping[sdl.KEYUP] = app.KeyboardActionUp
 
