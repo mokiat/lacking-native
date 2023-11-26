@@ -107,7 +107,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		if err != nil {
 			return fmt.Errorf("error creating surface: %v", err)
 		}
-		draw.Draw(WrapSurface(surface), surface.Bounds(), img, image.Point{}, draw.Src)
+		draw.Draw(surface, surface.Bounds(), img, image.Point{}, draw.Src)
 		defer surface.Free()
 
 		window.SetIcon(surface)

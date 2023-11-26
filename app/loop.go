@@ -186,7 +186,7 @@ func (l *loop) CreateCursor(definition app.CursorDefinition) app.Cursor {
 	if err != nil {
 		panic(fmt.Errorf("error creating surface: %v", err))
 	}
-	draw.Draw(WrapSurface(surface), surface.Bounds(), img, image.Point{}, draw.Src)
+	draw.Draw(surface, surface.Bounds(), img, image.Point{}, draw.Src)
 
 	return &customCursor{
 		surface: surface,
