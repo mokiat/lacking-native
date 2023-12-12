@@ -3,14 +3,11 @@ package app
 import (
 	"fmt"
 	"image"
-	"image/draw"
-	"math"
 	"runtime"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/veandco/go-sdl2/mix"
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"github.com/mokiat/lacking/app"
 )
@@ -26,74 +23,55 @@ func Run(cfg *Config, controller app.Controller) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
-		return fmt.Errorf("error initializing SDL2: %w", err)
+	if err := glfw.Init(); err != nil {
+		return fmt.Errorf("failed to initialize glfw: %w", err)
 	}
-	defer sdl.Quit()
-
-	if err := mix.Init(mix.INIT_MP3); err != nil {
-		return fmt.Errorf("error initializing SDL2 MP3 mixer: %w", err)
-	}
-	defer mix.Quit()
-
-	if err := mix.OpenAudio(44100, mix.DEFAULT_FORMAT, 2, 4096); err != nil {
-		return fmt.Errorf("error opening audio device: %w", err)
-	}
-	defer mix.CloseAudio()
+	defer glfw.Terminate()
 
 	var (
 		windowWidth  = cfg.width
 		windowHeight = cfg.height
-		windowFlags  = sdl.WINDOW_SHOWN | sdl.WINDOW_OPENGL | sdl.WINDOW_RESIZABLE | sdl.WINDOW_ALLOW_HIGHDPI
+		monitor      *glfw.Monitor
 	)
 	if cfg.fullscreen {
-		windowFlags |= sdl.WINDOW_FULLSCREEN_DESKTOP
+		monitor = glfw.GetPrimaryMonitor()
+		videoMode := monitor.GetVideoMode()
+		windowWidth = videoMode.Width
+		windowHeight = videoMode.Height
 	}
+	glfw.WindowHint(glfw.ContextVersionMajor, 4)
+	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+	glfw.WindowHint(glfw.SRGBCapable, glfw.True)
 	if cfg.maximized {
-		windowFlags |= sdl.WINDOW_MAXIMIZED
+		glfw.WindowHint(glfw.Maximized, glfw.True)
 	}
 
-	sdl.GLSetAttribute(sdl.GL_ACCELERATED_VISUAL, 1)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 4)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_FORWARD_COMPATIBLE_FLAG, 1)
-	sdl.GLSetAttribute(sdl.GL_FRAMEBUFFER_SRGB_CAPABLE, 1)
-
-	window, err := sdl.CreateWindow(
-		cfg.title,
-		sdl.WINDOWPOS_UNDEFINED,
-		sdl.WINDOWPOS_UNDEFINED,
-		int32(windowWidth),
-		int32(windowHeight),
-		uint32(windowFlags),
-	)
+	window, err := glfw.CreateWindow(windowWidth, windowHeight, cfg.title, monitor, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create glfw window: %w", err)
 	}
 	defer window.Destroy()
 
-	if cfg.minWidth != nil || cfg.minHeight != nil {
-		minWidth := 1
+	if cfg.minWidth != nil || cfg.maxWidth != nil || cfg.minHeight != nil || cfg.maxHeight != nil {
+		minWidth := glfw.DontCare
 		if cfg.minWidth != nil {
 			minWidth = *cfg.minWidth
 		}
-		minHeight := 1
+		minHeight := glfw.DontCare
 		if cfg.minHeight != nil {
 			minHeight = *cfg.minHeight
 		}
-		window.SetMinimumSize(int32(minWidth), int32(minHeight))
-	}
-	if cfg.maxWidth != nil || cfg.maxHeight != nil {
-		maxWidth := math.MaxInt32
+		maxWidth := glfw.DontCare
 		if cfg.maxWidth != nil {
 			maxWidth = *cfg.maxWidth
 		}
-		maxHeight := math.MaxInt32
+		maxHeight := glfw.DontCare
 		if cfg.maxHeight != nil {
 			maxHeight = *cfg.maxHeight
 		}
-		window.SetMaximumSize(int32(maxWidth), int32(maxHeight))
+		window.SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight)
 	}
 
 	if cfg.icon != "" {
@@ -101,25 +79,12 @@ func Run(cfg *Config, controller app.Controller) error {
 		if err != nil {
 			return fmt.Errorf("failed to open icon %q: %w", cfg.icon, err)
 		}
-		bounds := img.Bounds()
-
-		surface, err := sdl.CreateRGBSurfaceWithFormat(0, int32(bounds.Dx()), int32(bounds.Dy()), 32, sdl.PIXELFORMAT_RGBA8888)
-		if err != nil {
-			return fmt.Errorf("error creating surface: %v", err)
-		}
-		draw.Draw(surface, surface.Bounds(), img, image.Point{}, draw.Src)
-		defer surface.Free()
-
-		window.SetIcon(surface)
+		window.SetIcon([]image.Image{img})
 	}
 
-	context, err := window.GLCreateContext()
-	if err != nil {
-		return fmt.Errorf("error creating gl context: %w", err)
-	}
-	defer sdl.GLDeleteContext(context)
-
-	sdl.GLSetSwapInterval(cfg.swapInterval)
+	window.MakeContextCurrent()
+	defer glfw.DetachCurrentContext()
+	glfw.SwapInterval(cfg.swapInterval)
 
 	if err := gl.Init(); err != nil {
 		return fmt.Errorf("failed to initialize opengl: %w", err)
