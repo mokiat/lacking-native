@@ -4,15 +4,14 @@ import (
 	"math"
 	"time"
 
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/mokiat/gomath/dprec"
 	"github.com/mokiat/lacking/app"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
-func newGamepad(index int) *Gamepad {
+func newGamepad(joystick glfw.Joystick) *Gamepad {
 	return &Gamepad{
-		index:      index,
-		controller: sdl.GameControllerOpen(index),
+		joystick: joystick,
 
 		isDirty:     true,
 		isConnected: false,
@@ -24,8 +23,7 @@ func newGamepad(index int) *Gamepad {
 }
 
 type Gamepad struct {
-	index      int
-	controller *sdl.GameController
+	joystick glfw.Joystick
 
 	isDirty     bool
 	isConnected bool
@@ -188,13 +186,6 @@ func (g *Gamepad) Pulse(intensity float64, duration time.Duration) {
 	// Haptic feedback is still not supported by glfw.
 }
 
-func (g *Gamepad) hasInstanceID(instanceID sdl.JoystickID) bool {
-	if g.controller == nil {
-		return false
-	}
-	return g.controller.Joystick().InstanceID() == instanceID
-}
-
 func (g *Gamepad) markDirty() {
 	g.isDirty = true
 }
@@ -204,30 +195,34 @@ func (g *Gamepad) refresh() {
 		return
 	}
 	g.isDirty = false
-
-	g.isSupported = g.controller != nil
-	g.isConnected = g.isSupported && g.controller.Attached()
+	g.isConnected = g.joystick.Present()
 	if g.isConnected {
-		g.leftStickX = float64(g.controller.Axis(sdl.CONTROLLER_AXIS_LEFTX)) / float64(math.MaxInt16)
-		g.leftStickY = float64(g.controller.Axis(sdl.CONTROLLER_AXIS_LEFTY)) / float64(math.MaxInt16)
-		g.leftStickButton = g.controller.Button(sdl.CONTROLLER_BUTTON_LEFTSTICK) == 1
-		g.rightStickX = float64(g.controller.Axis(sdl.CONTROLLER_AXIS_RIGHTX)) / float64(math.MaxInt16)
-		g.rightStickY = float64(g.controller.Axis(sdl.CONTROLLER_AXIS_RIGHTY)) / float64(math.MaxInt16)
-		g.rightStickButton = g.controller.Button(sdl.CONTROLLER_BUTTON_RIGHTSTICK) == 1
-		g.leftBumperButton = g.controller.Button(sdl.CONTROLLER_BUTTON_LEFTSHOULDER) == 1
-		g.leftTrigger = float64(g.controller.Axis(sdl.CONTROLLER_AXIS_TRIGGERLEFT)) / float64(math.MaxInt16)
-		g.rightBumperButton = g.controller.Button(sdl.CONTROLLER_BUTTON_RIGHTSHOULDER) == 1
-		g.rightTrigger = float64(g.controller.Axis(sdl.CONTROLLER_AXIS_TRIGGERRIGHT)) / float64(math.MaxInt16)
-		g.dpadLeftButton = g.controller.Button(sdl.CONTROLLER_BUTTON_DPAD_LEFT) == 1
-		g.dpadRightButton = g.controller.Button(sdl.CONTROLLER_BUTTON_DPAD_RIGHT) == 1
-		g.dpadUpButton = g.controller.Button(sdl.CONTROLLER_BUTTON_DPAD_UP) == 1
-		g.dpadDownButton = g.controller.Button(sdl.CONTROLLER_BUTTON_DPAD_DOWN) == 1
-		g.actionLeftButton = g.controller.Button(sdl.CONTROLLER_BUTTON_X) == 1
-		g.actionRightButton = g.controller.Button(sdl.CONTROLLER_BUTTON_B) == 1
-		g.actionUpButton = g.controller.Button(sdl.CONTROLLER_BUTTON_Y) == 1
-		g.actionDownButton = g.controller.Button(sdl.CONTROLLER_BUTTON_A) == 1
-		g.forwardButton = g.controller.Button(sdl.CONTROLLER_BUTTON_START) == 1
-		g.backButton = g.controller.Button(sdl.CONTROLLER_BUTTON_BACK) == 1
+		g.isSupported = g.joystick.IsGamepad()
+	} else {
+		g.isSupported = false
+	}
+	if g.isSupported {
+		state := g.joystick.GetGamepadState()
+		g.leftStickX = float64(state.Axes[glfw.AxisLeftX])
+		g.leftStickY = float64(state.Axes[glfw.AxisLeftY])
+		g.leftStickButton = state.Buttons[glfw.ButtonLeftThumb] == glfw.Press
+		g.rightStickX = float64(state.Axes[glfw.AxisRightX])
+		g.rightStickY = float64(state.Axes[glfw.AxisRightY])
+		g.rightStickButton = state.Buttons[glfw.ButtonRightThumb] == glfw.Press
+		g.leftBumperButton = state.Buttons[glfw.ButtonLeftBumper] == glfw.Press
+		g.leftTrigger = float64(state.Axes[glfw.AxisLeftTrigger]+1.0) / 2.0
+		g.rightBumperButton = state.Buttons[glfw.ButtonRightBumper] == glfw.Press
+		g.rightTrigger = float64(state.Axes[glfw.AxisRightTrigger]+1.0) / 2.0
+		g.dpadLeftButton = state.Buttons[glfw.ButtonDpadLeft] == glfw.Press
+		g.dpadRightButton = state.Buttons[glfw.ButtonDpadRight] == glfw.Press
+		g.dpadUpButton = state.Buttons[glfw.ButtonDpadUp] == glfw.Press
+		g.dpadDownButton = state.Buttons[glfw.ButtonDpadDown] == glfw.Press
+		g.actionLeftButton = state.Buttons[glfw.ButtonSquare] == glfw.Press
+		g.actionRightButton = state.Buttons[glfw.ButtonCircle] == glfw.Press
+		g.actionUpButton = state.Buttons[glfw.ButtonTriangle] == glfw.Press
+		g.actionDownButton = state.Buttons[glfw.ButtonCross] == glfw.Press
+		g.forwardButton = state.Buttons[glfw.ButtonStart] == glfw.Press
+		g.backButton = state.Buttons[glfw.ButtonBack] == glfw.Press
 	} else {
 		g.leftStickX = 0.0
 		g.leftStickY = 0.0

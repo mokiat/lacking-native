@@ -1,13 +1,12 @@
 package app
 
-import "github.com/veandco/go-sdl2/sdl"
+import "github.com/go-gl/glfw/v3.3/glfw"
 
 type customCursor struct {
-	surface *sdl.Surface
-	cursor  *sdl.Cursor
+	cursor *glfw.Cursor
 }
 
 func (c *customCursor) Destroy() {
-	sdl.FreeCursor(c.cursor)
-	c.surface.Free()
+	c.cursor.Destroy()
+	c.cursor = nil
 }
