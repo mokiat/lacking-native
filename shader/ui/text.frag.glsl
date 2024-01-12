@@ -2,13 +2,13 @@
 
 layout(location = 0) out vec4 fragmentColor;
 
-// TODO: Use binding
-uniform sampler2D textureIn;
+uniform sampler2D fontTextureIn;
 uniform vec4 colorIn = vec4(1.0, 1.0, 1.0, 1.0);
 
 noperspective in vec2 texCoordInOut;
 
 void main()
 {
-	fragmentColor = texture(textureIn, texCoordInOut) * colorIn;
+	float amount = texture(fontTextureIn, texCoordInOut).x;
+	fragmentColor = vec4(amount) * colorIn;
 }
