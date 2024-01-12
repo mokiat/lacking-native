@@ -9,21 +9,34 @@ import (
 	"github.com/mokiat/lacking/render"
 )
 
-func NewProgram(info render.ProgramInfo) *Program {
+type ProgramInfo struct {
+	Label           string
+	VertexCode      string
+	FragmentCode    string
+	TextureBindings []render.TextureBinding
+	UniformBindings []render.UniformBinding
+}
+
+func NewProgram(info ProgramInfo) *Program {
+	vertexShader := newVertexShader(info.Label, info.VertexCode)
+	defer vertexShader.Release()
+
+	fragmentShader := newFragmentShader(info.Label, info.FragmentCode)
+	defer fragmentShader.Release()
+
 	program := &Program{
 		id: gl.CreateProgram(),
 	}
-	if vertexShader, ok := info.VertexShader.(*Shader); ok {
-		gl.AttachShader(program.id, vertexShader.id)
-		defer gl.DetachShader(program.id, vertexShader.id)
-	}
-	if fragmentShader, ok := info.FragmentShader.(*Shader); ok {
-		gl.AttachShader(program.id, fragmentShader.id)
-		defer gl.DetachShader(program.id, fragmentShader.id)
-	}
+
+	gl.AttachShader(program.id, vertexShader.id)
+	defer gl.DetachShader(program.id, vertexShader.id)
+	gl.AttachShader(program.id, fragmentShader.id)
+	defer gl.DetachShader(program.id, fragmentShader.id)
+
 	if err := program.link(); err != nil {
-		logger.Error("Program link error: %v!", err)
+		logger.Error("Program (%q) link error: %v!", info.Label, err)
 	}
+
 	if len(info.TextureBindings) > 0 {
 		gl.UseProgram(program.id)
 		for _, binding := range info.TextureBindings {
@@ -32,6 +45,7 @@ func NewProgram(info render.ProgramInfo) *Program {
 		}
 		gl.UseProgram(0)
 	}
+
 	for _, binding := range info.UniformBindings {
 		location := gl.GetUniformBlockIndex(program.id, gl.Str(binding.Name+"\x00"))
 		if location != gl.INVALID_INDEX {
@@ -39,10 +53,6 @@ func NewProgram(info render.ProgramInfo) *Program {
 		}
 	}
 
-	// NOTE: Texture bindings are to be done in GLSL through
-	// `layout(binding = 2) uniform ...`.
-	// NOTE: Buffer bindings are to be done in GLSL through
-	// `layout(binding = 2, std140) uniform ...`
 	return program
 }
 
@@ -51,6 +61,7 @@ type Program struct {
 	id uint32
 }
 
+// Deprecated: To be removed.
 func (p *Program) UniformLocation(name string) render.UniformLocation {
 	nullTerminatedName := name + "\x00"
 	result := gl.GetUniformLocation(p.id, gl.Str(nullTerminatedName))

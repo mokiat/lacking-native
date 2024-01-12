@@ -29,6 +29,16 @@ func (a *API) CreateFramebuffer(info render.FramebufferInfo) render.Framebuffer 
 	return internal.NewFramebuffer(info)
 }
 
+func (a *API) CreateProgram(info render.ProgramInfo) render.Program {
+	return internal.NewProgram(internal.ProgramInfo{
+		Label:           info.Label,
+		VertexCode:      info.SourceCode.(ProgramCode).VertexCode,
+		FragmentCode:    info.SourceCode.(ProgramCode).FragmentCode,
+		TextureBindings: info.TextureBindings,
+		UniformBindings: info.UniformBindings,
+	})
+}
+
 func (a *API) CreateColorTexture2D(info render.ColorTexture2DInfo) render.Texture {
 	return internal.NewColorTexture2D(info)
 }
@@ -47,18 +57,6 @@ func (a *API) CreateStencilTexture2D(info render.StencilTexture2DInfo) render.Te
 
 func (a *API) CreateDepthStencilTexture2D(info render.DepthStencilTexture2DInfo) render.Texture {
 	return internal.NewDepthStencilTexture2D(info)
-}
-
-func (a *API) CreateVertexShader(info render.ShaderInfo) render.Shader {
-	return internal.NewVertexShader(info)
-}
-
-func (a *API) CreateFragmentShader(info render.ShaderInfo) render.Shader {
-	return internal.NewFragmentShader(info)
-}
-
-func (a *API) CreateProgram(info render.ProgramInfo) render.Program {
-	return internal.NewProgram(info)
 }
 
 func (a *API) CreateVertexBuffer(info render.BufferInfo) render.Buffer {
