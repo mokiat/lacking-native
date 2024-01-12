@@ -25,6 +25,10 @@ func (a *API) DefaultFramebuffer() render.Framebuffer {
 	return internal.DefaultFramebuffer
 }
 
+func (a *API) DetermineContentFormat(framebuffer render.Framebuffer) render.DataFormat {
+	return internal.DetermineContentFormat(framebuffer)
+}
+
 func (a *API) CreateFramebuffer(info render.FramebufferInfo) render.Framebuffer {
 	return internal.NewFramebuffer(info)
 }
@@ -87,10 +91,6 @@ func (a *API) CreateCommandQueue() render.CommandQueue {
 	return internal.NewCommandQueue()
 }
 
-func (a *API) DetermineContentFormat(framebuffer render.Framebuffer) render.DataFormat {
-	return internal.DetermineContentFormat(framebuffer)
-}
-
 func (a *API) BeginRenderPass(info render.RenderPassInfo) {
 	a.renderer.BeginRenderPass(info)
 }
@@ -101,50 +101,6 @@ func (a *API) EndRenderPass() {
 
 func (a *API) Invalidate() {
 	a.renderer.Invalidate()
-}
-
-func (a *API) BindPipeline(pipeline render.Pipeline) {
-	a.renderer.BindPipeline(pipeline)
-}
-
-func (a *API) Uniform1f(location render.UniformLocation, value float32) {
-	a.renderer.Uniform1f(location, value)
-}
-
-func (a *API) Uniform1i(location render.UniformLocation, value int) {
-	a.renderer.Uniform1i(location, value)
-}
-
-func (a *API) Uniform3f(location render.UniformLocation, values [3]float32) {
-	a.renderer.Uniform3f(location, values)
-}
-
-func (a *API) Uniform4f(location render.UniformLocation, values [4]float32) {
-	a.renderer.Uniform4f(location, values)
-}
-
-func (a *API) UniformMatrix4f(location render.UniformLocation, values [16]float32) {
-	a.renderer.UniformMatrix4f(location, values)
-}
-
-func (a *API) UniformBufferUnit(index int, buffer render.Buffer) {
-	a.renderer.UniformBufferUnit(index, buffer)
-}
-
-func (a *API) UniformBufferUnitRange(index int, buffer render.Buffer, offset, size int) {
-	a.renderer.UniformBufferUnitRange(index, buffer, offset, size)
-}
-
-func (a *API) TextureUnit(index int, texture render.Texture) {
-	a.renderer.TextureUnit(index, texture)
-}
-
-func (a *API) Draw(vertexOffset, vertexCount, instanceCount int) {
-	a.renderer.Draw(vertexOffset, vertexCount, instanceCount)
-}
-
-func (a *API) DrawIndexed(indexOffset, indexCount, instanceCount int) {
-	a.renderer.DrawIndexed(indexOffset, indexCount, instanceCount)
 }
 
 func (a *API) CopyContentToTexture(info render.CopyContentToTextureInfo) {
