@@ -193,9 +193,6 @@ func (r *Renderer) BeginRenderPass(info render.RenderPassInfo) {
 }
 
 func (r *Renderer) EndRenderPass() {
-	// if len(r.invalidateAttachments) > 0 {
-	// 	gl.InvalidateFramebuffer(gl.FRAMEBUFFER, int32(len(r.invalidateAttachments)), &r.invalidateAttachments[0])
-	// }
 	gl.Disable(gl.CLIP_DISTANCE0)
 	gl.Disable(gl.CLIP_DISTANCE1)
 	gl.Disable(gl.CLIP_DISTANCE2)
@@ -208,106 +205,6 @@ func (r *Renderer) Invalidate() {
 	r.program = 0
 	r.isDirty = true
 	r.isInvalidated = true
-}
-
-func (r *Renderer) BindPipeline(pipeline render.Pipeline) {
-	intPipeline := pipeline.(*Pipeline)
-	r.executeCommandBindPipeline(CommandBindPipeline{
-		ProgramID:        intPipeline.ProgramID,
-		Topology:         intPipeline.Topology,
-		CullTest:         intPipeline.CullTest,
-		FrontFace:        intPipeline.FrontFace,
-		DepthTest:        intPipeline.DepthTest,
-		DepthWrite:       intPipeline.DepthWrite,
-		DepthComparison:  intPipeline.DepthComparison,
-		StencilTest:      intPipeline.StencilTest,
-		StencilOpFront:   intPipeline.StencilOpFront,
-		StencilOpBack:    intPipeline.StencilOpBack,
-		StencilFuncFront: intPipeline.StencilFuncFront,
-		StencilFuncBack:  intPipeline.StencilFuncBack,
-		StencilMaskFront: intPipeline.StencilMaskFront,
-		StencilMaskBack:  intPipeline.StencilMaskBack,
-		ColorWrite:       intPipeline.ColorWrite,
-		BlendEnabled:     intPipeline.BlendEnabled,
-		BlendColor:       intPipeline.BlendColor,
-		BlendEquation:    intPipeline.BlendEquation,
-		BlendFunc:        intPipeline.BlendFunc,
-		VertexArray:      intPipeline.VertexArray,
-	})
-}
-
-func (r *Renderer) Uniform1f(location render.UniformLocation, value float32) {
-	r.executeCommandUniform1f(CommandUniform1f{
-		Location: location.(int32),
-		Value:    value,
-	})
-}
-
-func (r *Renderer) Uniform1i(location render.UniformLocation, value int) {
-	r.executeCommandUniform1i(CommandUniform1i{
-		Location: location.(int32),
-		Value:    int32(value),
-	})
-}
-
-func (r *Renderer) Uniform3f(location render.UniformLocation, values [3]float32) {
-	r.executeCommandUniform3f(CommandUniform3f{
-		Location: location.(int32),
-		Values:   values,
-	})
-}
-
-func (r *Renderer) Uniform4f(location render.UniformLocation, values [4]float32) {
-	r.executeCommandUniform4f(CommandUniform4f{
-		Location: location.(int32),
-		Values:   values,
-	})
-}
-
-func (r *Renderer) UniformMatrix4f(location render.UniformLocation, values [16]float32) {
-	r.executeCommandUniformMatrix4f(CommandUniformMatrix4f{
-		Location: location.(int32),
-		Values:   values,
-	})
-}
-
-func (r *Renderer) UniformBufferUnit(index int, buffer render.Buffer) {
-	r.executeCommandUniformBufferUnit(CommandUniformBufferUnit{
-		Index:    uint32(index),
-		BufferID: buffer.(*Buffer).id,
-	})
-}
-
-func (r *Renderer) UniformBufferUnitRange(index int, buffer render.Buffer, offset, size int) {
-	r.executeCommandUniformBufferUnitRange(CommandUniformBufferUnitRange{
-		Index:    uint32(index),
-		BufferID: buffer.(*Buffer).id,
-		Offset:   uint32(offset),
-		Size:     uint32(size),
-	})
-}
-
-func (r *Renderer) TextureUnit(index int, texture render.Texture) {
-	r.executeCommandTextureUnit(CommandTextureUnit{
-		Index:     uint32(index),
-		TextureID: texture.(*Texture).id,
-	})
-}
-
-func (r *Renderer) Draw(vertexOffset, vertexCount, instanceCount int) {
-	r.executeCommandDraw(CommandDraw{
-		VertexOffset:  int32(vertexOffset),
-		VertexCount:   int32(vertexCount),
-		InstanceCount: int32(instanceCount),
-	})
-}
-
-func (r *Renderer) DrawIndexed(indexOffset, indexCount, instanceCount int) {
-	r.executeCommandDrawIndexed(CommandDrawIndexed{
-		IndexOffset:   int32(indexOffset),
-		IndexCount:    int32(indexCount),
-		InstanceCount: int32(instanceCount),
-	})
 }
 
 func (r *Renderer) CopyContentToTexture(info render.CopyContentToTextureInfo) {
@@ -335,39 +232,15 @@ func (r *Renderer) SubmitQueue(queue *CommandQueue) {
 		case CommandKindBindPipeline:
 			command := PopCommand[CommandBindPipeline](queue)
 			r.executeCommandBindPipeline(command)
-		case CommandKindTopology:
-			command := PopCommand[CommandTopology](queue)
-			r.executeCommandTopology(command)
-		case CommandKindCullTest:
-			command := PopCommand[CommandCullTest](queue)
-			r.executeCommandCullTest(command)
-		case CommandKindFrontFace:
-			command := PopCommand[CommandFrontFace](queue)
-			r.executeCommandFrontFace(command)
-		case CommandKindDepthTest:
-			command := PopCommand[CommandDepthTest](queue)
-			r.executeCommandDepthTest(command)
-		case CommandKindDepthWrite:
-			command := PopCommand[CommandDepthWrite](queue)
-			r.executeCommandDepthWrite(command)
-		case CommandKindDepthComparison:
-			command := PopCommand[CommandDepthComparison](queue)
-			r.executeCommandDepthComparison(command)
 		case CommandKindUniform1f:
 			command := PopCommand[CommandUniform1f](queue)
 			r.executeCommandUniform1f(command)
-		case CommandKindUniform1i:
-			command := PopCommand[CommandUniform1i](queue)
-			r.executeCommandUniform1i(command)
 		case CommandKindUniform3f:
 			command := PopCommand[CommandUniform3f](queue)
 			r.executeCommandUniform3f(command)
 		case CommandKindUniform4f:
 			command := PopCommand[CommandUniform4f](queue)
 			r.executeCommandUniform4f(command)
-		case CommandKindUniformMatrix4f:
-			command := PopCommand[CommandUniformMatrix4f](queue)
-			r.executeCommandUniformMatrix4f(command)
 		case CommandKindUniformBufferUnit:
 			command := PopCommand[CommandUniformBufferUnit](queue)
 			r.executeCommandUniformBufferUnit(command)
@@ -541,13 +414,6 @@ func (r *Renderer) executeCommandUniform1f(command CommandUniform1f) {
 	)
 }
 
-func (r *Renderer) executeCommandUniform1i(command CommandUniform1i) {
-	gl.Uniform1i(
-		command.Location,
-		command.Value,
-	)
-}
-
 func (r *Renderer) executeCommandUniform3f(command CommandUniform3f) {
 	gl.Uniform3f(
 		command.Location,
@@ -564,16 +430,6 @@ func (r *Renderer) executeCommandUniform4f(command CommandUniform4f) {
 		command.Values[1],
 		command.Values[2],
 		command.Values[3],
-	)
-}
-
-func (r *Renderer) executeCommandUniformMatrix4f(command CommandUniformMatrix4f) {
-	slice := command.Values[:]
-	gl.UniformMatrix4fv(
-		command.Location,
-		1,
-		false,
-		&slice[0],
 	)
 }
 
