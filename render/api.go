@@ -7,12 +7,18 @@ import (
 
 func NewAPI() render.API {
 	return &API{
+		limits:   internal.NewLimits(),
 		renderer: internal.NewRenderer(),
 	}
 }
 
 type API struct {
+	limits   *internal.Limits
 	renderer *internal.Renderer
+}
+
+func (a *API) Limits() render.Limits {
+	return a.limits
 }
 
 func (a *API) Capabilities() render.Capabilities {
