@@ -8,8 +8,6 @@ import (
 	"text/template"
 )
 
-// TODO: Move to internal package
-
 //go:embed common/*.glsl ui/*.glsl game/*.glsl
 var sources embed.FS
 

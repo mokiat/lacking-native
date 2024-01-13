@@ -1,8 +1,8 @@
 package ui
 
 import (
+	"github.com/mokiat/lacking-native/internal/shader"
 	"github.com/mokiat/lacking-native/render"
-	"github.com/mokiat/lacking-native/shader"
 	renderapi "github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/ui"
 )

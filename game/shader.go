@@ -3,8 +3,8 @@ package game
 import (
 	"fmt"
 
+	"github.com/mokiat/lacking-native/internal/shader"
 	"github.com/mokiat/lacking-native/render"
-	"github.com/mokiat/lacking-native/shader"
 	"github.com/mokiat/lacking/game/graphics"
 	"github.com/mokiat/lacking/game/graphics/shading"
 	renderapi "github.com/mokiat/lacking/render"
