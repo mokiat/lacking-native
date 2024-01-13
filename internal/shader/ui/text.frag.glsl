@@ -2,8 +2,9 @@
 
 layout(location = 0) out vec4 fragmentColor;
 
+/*template "ubo_material.glsl"*/
+
 uniform sampler2D fontTextureIn;
-uniform vec4 colorIn = vec4(1.0, 1.0, 1.0, 1.0);
 
 noperspective in vec2 texCoordInOut;
 

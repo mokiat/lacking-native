@@ -4,10 +4,9 @@ layout(location = 0) in vec2 positionIn;
 
 /*template "ubo_camera.glsl"*/
 
-// TODO: Move to UBO
-uniform mat4 transformMatrixIn;
-uniform mat4 clipMatrixIn;
-uniform mat4 textureTransformMatrixIn;
+/*template "ubo_model.glsl"*/
+
+/*template "ubo_material.glsl"*/
 
 noperspective out vec2 texCoordInOut;
 
