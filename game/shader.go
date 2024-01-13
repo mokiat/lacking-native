@@ -10,6 +10,11 @@ import (
 	renderapi "github.com/mokiat/lacking/render"
 )
 
+var construct = shader.Load(
+	shader.Common(),
+	shader.Game(),
+)
+
 func NewShaderCollection() graphics.ShaderCollection {
 	return graphics.ShaderCollection{
 		BuildForward:        buildForward,
@@ -90,8 +95,8 @@ func buildForward(cfg graphics.MeshConfig, fn shading.ForwardFunc) renderapi.Pro
 	}
 
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("custom.vert.glsl", vertexSettings),
-		FragmentCode: shader.RunTemplate("custom.frag.glsl", fragmentSettings),
+		VertexCode:   construct("custom.vert.glsl", vertexSettings),
+		FragmentCode: construct("custom.frag.glsl", fragmentSettings),
 	}
 }
 
@@ -103,8 +108,8 @@ func newShadowMappingSet(cfg graphics.ShadowMappingShaderConfig) renderapi.Progr
 		settings.UseArmature = true
 	}
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("shadow.vert.glsl", settings),
-		FragmentCode: shader.RunTemplate("shadow.frag.glsl", settings),
+		VertexCode:   construct("shadow.vert.glsl", settings),
+		FragmentCode: construct("shadow.frag.glsl", settings),
 	}
 }
 
@@ -130,29 +135,29 @@ func newPBRGeometrySet(cfg graphics.PBRGeometryShaderConfig) renderapi.ProgramCo
 		settings.UseAlbedoTexture = true
 	}
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("pbr_geometry.vert.glsl", settings),
-		FragmentCode: shader.RunTemplate("pbr_geometry.frag.glsl", settings),
+		VertexCode:   construct("pbr_geometry.vert.glsl", settings),
+		FragmentCode: construct("pbr_geometry.frag.glsl", settings),
 	}
 }
 
 func newAmbientLightShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("ambient_light.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("ambient_light.frag.glsl", struct{}{}),
+		VertexCode:   construct("ambient_light.vert.glsl", struct{}{}),
+		FragmentCode: construct("ambient_light.frag.glsl", struct{}{}),
 	}
 }
 
 func newPointLightShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("point_light.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("point_light.frag.glsl", struct{}{}),
+		VertexCode:   construct("point_light.vert.glsl", struct{}{}),
+		FragmentCode: construct("point_light.frag.glsl", struct{}{}),
 	}
 }
 
 func newSpotLightShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("spot_light.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("spot_light.frag.glsl", struct{}{}),
+		VertexCode:   construct("spot_light.vert.glsl", struct{}{}),
+		FragmentCode: construct("spot_light.frag.glsl", struct{}{}),
 	}
 }
 
@@ -162,36 +167,36 @@ func newDirectionalLightShaderSet() renderapi.ProgramCode {
 	}
 	settings.UseShadowMapping = true // TODO
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("directional_light.vert.glsl", settings),
-		FragmentCode: shader.RunTemplate("directional_light.frag.glsl", settings),
+		VertexCode:   construct("directional_light.vert.glsl", settings),
+		FragmentCode: construct("directional_light.frag.glsl", settings),
 	}
 }
 
 func newSkyboxShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("skybox.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("skybox.frag.glsl", struct{}{}),
+		VertexCode:   construct("skybox.vert.glsl", struct{}{}),
+		FragmentCode: construct("skybox.frag.glsl", struct{}{}),
 	}
 }
 
 func newSkycolorShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("skycolor.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("skycolor.frag.glsl", struct{}{}),
+		VertexCode:   construct("skycolor.vert.glsl", struct{}{}),
+		FragmentCode: construct("skycolor.frag.glsl", struct{}{}),
 	}
 }
 
 func newDebugShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("debug.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("debug.frag.glsl", struct{}{}),
+		VertexCode:   construct("debug.vert.glsl", struct{}{}),
+		FragmentCode: construct("debug.frag.glsl", struct{}{}),
 	}
 }
 
 func newExposureShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("exposure.vert.glsl", struct{}{}),
-		FragmentCode: shader.RunTemplate("exposure.frag.glsl", struct{}{}),
+		VertexCode:   construct("exposure.vert.glsl", struct{}{}),
+		FragmentCode: construct("exposure.frag.glsl", struct{}{}),
 	}
 }
 
@@ -209,7 +214,7 @@ func newPostprocessingShaderSet(cfg graphics.PostprocessingShaderConfig) rendera
 		panic(fmt.Errorf("unknown tone mapping mode: %s", cfg.ToneMapping))
 	}
 	return render.ProgramCode{
-		VertexCode:   shader.RunTemplate("postprocess.vert.glsl", settings),
-		FragmentCode: shader.RunTemplate("postprocess.frag.glsl", settings),
+		VertexCode:   construct("postprocess.vert.glsl", settings),
+		FragmentCode: construct("postprocess.frag.glsl", settings),
 	}
 }

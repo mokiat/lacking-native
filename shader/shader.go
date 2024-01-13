@@ -10,7 +10,7 @@ import (
 
 // TODO: Move to internal package
 
-//go:embed *.glsl common/*.glsl ui/*.glsl game/*.glsl
+//go:embed common/*.glsl ui/*.glsl game/*.glsl
 var sources embed.FS
 
 func shaderDir(name string) fs.FS {
@@ -21,45 +21,28 @@ func shaderDir(name string) fs.FS {
 	return subDir
 }
 
+// Common returns a filesystem containing common shaders.
 func Common() fs.FS {
 	return shaderDir("common")
 }
 
+// UI returns a filesystem containing UI shaders.
 func UI() fs.FS {
 	return shaderDir("ui")
 }
 
+// Game returns a filesystem containing game shaders.
 func Game() fs.FS {
 	return shaderDir("game")
 }
 
-var rootTemplate = template.Must(template.
-	New("root").
-	Delims("/*", "*/").
-	ParseFS(sources, "*.glsl"),
-)
+// ConstructFunc creates a shader from a template with the given name and data.
+type ConstructFunc func(name string, data any) string
 
-var buffer = new(bytes.Buffer)
-
-// Deprecated: Use ShaderSource instead.
-func RunTemplate(name string, data any) string {
-	tmpl := rootTemplate.Lookup(name)
-	if tmpl == nil {
-		panic(fmt.Errorf("template %q not found", name))
-	}
-
-	buffer.Reset()
-	if err := tmpl.Execute(buffer, data); err != nil {
-		panic(fmt.Errorf("template %q exec error: %w", name, err))
-	}
-	return buffer.String()
-}
-
-// TODO: Move to internal package
-
-type ConstructShaderFunc func(name string, data any) string
-
-func LoadShaders(sources ...fs.FS) ConstructShaderFunc {
+// Load loads all shaders from the given filesystems and returns a
+// ConstructFunc that can be used to construct shaders from the loaded
+// templates.
+func Load(sources ...fs.FS) ConstructFunc {
 	rootTemplate := template.New("root").Delims("/*", "*/")
 	for _, source := range sources {
 		rootTemplate = template.Must(rootTemplate.ParseFS(source, "*.glsl"))
@@ -71,7 +54,6 @@ func LoadShaders(sources ...fs.FS) ConstructShaderFunc {
 		if tmpl == nil {
 			panic(fmt.Errorf("template %q not found", name))
 		}
-
 		buffer.Reset()
 		if err := tmpl.Execute(buffer, data); err != nil {
 			panic(fmt.Errorf("template %q exec error: %w", name, err))

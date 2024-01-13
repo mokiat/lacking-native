@@ -7,7 +7,7 @@ import (
 	"github.com/mokiat/lacking/ui"
 )
 
-var construct = shader.LoadShaders(
+var construct = shader.Load(
 	shader.Common(),
 	shader.UI(),
 )
