@@ -9,12 +9,11 @@ uniform sampler2D fbDepthTextureIn;
 uniform sampler2DShadow fbShadowTextureIn;
 /*end*/
 
-// TODO: Move to light
-uniform vec3 lightIntensityIn = vec3(1.0, 1.0, 1.0);
-
 /*template "ubo_camera.glsl"*/
 
 /*template "ubo_light.glsl"*/
+
+/*template "ubo_light_properties.glsl"*/
 
 /*template "math.glsl"*/
 
@@ -40,6 +39,8 @@ void main()
 
 	vec3 lightDirection = normalize(lightMatrixIn[2].xyz);
 
+	vec3 lightIntensity = lightIntensityIn.xyz * lightIntensityIn.w;
+
 	vec3 hdr = calculateDirectionalHDR(directionalSetup(
 		roughness,
 		reflectedColor,
@@ -47,7 +48,7 @@ void main()
 		normalize(cameraPosition - worldPosition),
 		lightDirection,
 		normal,
-		lightIntensityIn
+		lightIntensity
 	));
 
 	float attenuation = 1.0;

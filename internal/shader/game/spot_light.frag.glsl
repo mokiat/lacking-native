@@ -6,15 +6,11 @@ uniform sampler2D fbColor0TextureIn;
 uniform sampler2D fbColor1TextureIn;
 uniform sampler2D fbDepthTextureIn;
 
-// TODO: Move as part of light
-uniform vec3 lightIntensityIn = vec3(1.0, 1.0, 1.0);
-uniform float lightRangeIn = 4.0;
-uniform float lightOuterAngleIn = 0.7;
-uniform float lightInnerAngleIn = 0.2;
-
 /*template "ubo_camera.glsl"*/
 
 /*template "ubo_light.glsl"*/
+
+/*template "ubo_light_properties.glsl"*/
 
 /*template "math.glsl"*/
 
@@ -40,9 +36,14 @@ void main()
 
 	vec3 lightDirection = lightMatrixIn[3].xyz - worldPosition;
 	float lightDistance = length(lightDirection);
+	float lightRange = lightSpanIn.x;
+	float lightOuterAngle = lightSpanIn.y;
+	float lightInnerAngle = lightSpanIn.z;
 	float lightAngle = acos(dot(normalize(lightDirection), normalize(lightMatrixIn[1].xyz)));
-	float distAttenuation = getCappedDistanceAttenuation(lightDistance, lightRangeIn);
-	float coneAttenuation = getConeAttenuation(lightAngle, lightOuterAngleIn, lightInnerAngleIn);
+	float distAttenuation = getCappedDistanceAttenuation(lightDistance, lightRange);
+	float coneAttenuation = getConeAttenuation(lightAngle, lightOuterAngle, lightInnerAngle);
+
+	vec3 lightIntensity = lightIntensityIn.xyz * lightIntensityIn.w;
 
 	vec3 hdr = calculateDirectionalHDR(directionalSetup(
 		roughness,
@@ -51,7 +52,7 @@ void main()
 		normalize(cameraPosition - worldPosition),
 		normalize(lightDirection),
 		normal,
-		lightIntensityIn
+		lightIntensity
 	));
 	fbColor0Out = vec4(hdr * distAttenuation * coneAttenuation, 1.0);
 }
