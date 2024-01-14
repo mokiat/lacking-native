@@ -6,7 +6,7 @@ require (
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240108052320-294b0144ba39
 	github.com/mokiat/gomath v0.8.1
-	github.com/mokiat/lacking v0.15.0
+	github.com/mokiat/lacking v0.16.0
 	golang.org/x/image v0.15.0
 )
 
