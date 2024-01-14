@@ -2,7 +2,7 @@
 
 layout(location = 0) out vec4 fbColor0Out;
 
-uniform vec4 albedoColorIn;
+/*template "ubo_skybox.glsl"*/
 
 void main()
 {
