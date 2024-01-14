@@ -40,7 +40,7 @@ func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
 
 	status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if status != gl.FRAMEBUFFER_COMPLETE {
-		logger.Error("Framebuffer is incomplete!")
+		logger.Error("Framebuffer (%q) is incomplete!", info.Label)
 	}
 
 	return &Framebuffer{

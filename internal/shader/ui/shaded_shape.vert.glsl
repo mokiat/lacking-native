@@ -2,10 +2,13 @@
 
 layout(location = 0) in vec2 positionIn;
 
-// TODO: Move to UBO
-uniform mat4 transformMatrixIn;
-uniform mat4 projectionMatrixIn;
-uniform mat4 clipMatrixIn;
+/*template "ubo_camera.glsl"*/
+
+/*template "ubo_model.glsl"*/
+
+/*template "ubo_material.glsl"*/
+
+noperspective out vec2 texCoordInOut;
 
 out gl_PerVertex
 {
@@ -23,5 +26,6 @@ void main()
 	gl_ClipDistance[2] = clipValues.z;
 	gl_ClipDistance[3] = clipValues.w;
 
+	texCoordInOut = (textureTransformMatrixIn * vec4(positionIn, 0.0, 1.0)).xy;
 	gl_Position = projectionMatrixIn * screenPosition;
 }

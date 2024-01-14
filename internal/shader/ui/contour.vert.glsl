@@ -3,10 +3,9 @@
 layout(location = 0) in vec2 positionIn;
 layout(location = 2) in vec4 colorIn;
 
-// TODO: Move to UBO
-uniform mat4 transformMatrixIn;
-uniform mat4 projectionMatrixIn;
-uniform mat4 clipMatrixIn;
+/*template "ubo_camera.glsl"*/
+
+/*template "ubo_model.glsl"*/
 
 out gl_PerVertex
 {

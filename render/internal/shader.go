@@ -6,33 +6,31 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/mokiat/lacking/render"
 )
 
-func NewVertexShader(info render.ShaderInfo) *Shader {
+func newVertexShader(programLabel, sourceCode string) *Shader {
 	shader := &Shader{
 		id: gl.CreateShader(gl.VERTEX_SHADER),
 	}
-	shader.setSourceCode(info.SourceCode)
+	shader.setSourceCode(sourceCode)
 	if err := shader.compile(); err != nil {
-		logger.Error("Shader compilation error: %v!", err)
+		logger.Error("Vertex Shader (for program %q) compilation error: %v!", programLabel, err)
 	}
 	return shader
 }
 
-func NewFragmentShader(info render.ShaderInfo) *Shader {
+func newFragmentShader(programLabel, sourceCode string) *Shader {
 	shader := &Shader{
 		id: gl.CreateShader(gl.FRAGMENT_SHADER),
 	}
-	shader.setSourceCode(info.SourceCode)
+	shader.setSourceCode(sourceCode)
 	if err := shader.compile(); err != nil {
-		logger.Error("Shader compilation error: %v!", err)
+		logger.Error("Fragment Shader (for program %q) compilation error: %v!", programLabel, err)
 	}
 	return shader
 }
 
 type Shader struct {
-	render.ShaderObject
 	id uint32
 }
 

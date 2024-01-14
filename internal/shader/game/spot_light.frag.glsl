@@ -5,16 +5,12 @@ layout(location = 0) out vec4 fbColor0Out;
 uniform sampler2D fbColor0TextureIn;
 uniform sampler2D fbColor1TextureIn;
 uniform sampler2D fbDepthTextureIn;
-/*if .UseShadowMapping*/
-uniform sampler2DShadow fbShadowTextureIn;
-/*end*/
-
-// TODO: Move to light
-uniform vec3 lightIntensityIn = vec3(1.0, 1.0, 1.0);
 
 /*template "ubo_camera.glsl"*/
 
 /*template "ubo_light.glsl"*/
+
+/*template "ubo_light_properties.glsl"*/
 
 /*template "math.glsl"*/
 
@@ -38,29 +34,25 @@ void main()
 	vec3 refractedColor = baseColor * (1.0 - metalness);
 	vec3 reflectedColor = mix(vec3(0.02), baseColor, metalness);
 
-	vec3 lightDirection = normalize(lightMatrixIn[2].xyz);
+	vec3 lightDirection = lightMatrixIn[3].xyz - worldPosition;
+	float lightDistance = length(lightDirection);
+	float lightRange = lightSpanIn.x;
+	float lightOuterAngle = lightSpanIn.y;
+	float lightInnerAngle = lightSpanIn.z;
+	float lightAngle = acos(dot(normalize(lightDirection), normalize(lightMatrixIn[1].xyz)));
+	float distAttenuation = getCappedDistanceAttenuation(lightDistance, lightRange);
+	float coneAttenuation = getConeAttenuation(lightAngle, lightOuterAngle, lightInnerAngle);
+
+	vec3 lightIntensity = lightIntensityIn.xyz * lightIntensityIn.w;
 
 	vec3 hdr = calculateDirectionalHDR(directionalSetup(
 		roughness,
 		reflectedColor,
 		refractedColor,
 		normalize(cameraPosition - worldPosition),
-		lightDirection,
+		normalize(lightDirection),
 		normal,
-		lightIntensityIn
+		lightIntensity
 	));
-
-	float attenuation = 1.0;
-
-	/*if .UseShadowMapping*/
-	attenuation *= shadowAttenuation(fbShadowTextureIn, ShadowSetup(
-		lightProjectionMatrixIn,
-		lightViewMatrixIn,
-		lightMatrixIn,
-		worldPosition,
-		normal
-	));
-	/*end*/
-
-	fbColor0Out = vec4(hdr * attenuation, 1.0);
+	fbColor0Out = vec4(hdr * distAttenuation * coneAttenuation, 1.0);
 }
