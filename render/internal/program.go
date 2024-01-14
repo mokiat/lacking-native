@@ -61,14 +61,6 @@ type Program struct {
 	id uint32
 }
 
-// Deprecated: To be removed.
-func (p *Program) UniformLocation(name string) render.UniformLocation {
-	nullTerminatedName := name + "\x00"
-	result := gl.GetUniformLocation(p.id, gl.Str(nullTerminatedName))
-	runtime.KeepAlive(nullTerminatedName)
-	return result
-}
-
 func (p *Program) Release() {
 	gl.DeleteProgram(p.id)
 	p.id = 0
