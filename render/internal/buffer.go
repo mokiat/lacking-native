@@ -55,11 +55,6 @@ type Buffer struct {
 	kind uint32
 }
 
-func (b *Buffer) Update(info render.BufferUpdateInfo) {
-	gl.BindBuffer(b.kind, b.id)
-	gl.BufferSubData(b.kind, info.Offset, len(info.Data), gl.Ptr(&info.Data[0]))
-}
-
 func (b *Buffer) Fetch(info render.BufferFetchInfo) {
 	gl.BindBuffer(b.kind, b.id)
 	gl.GetBufferSubData(b.kind, info.Offset, len(info.Target), gl.Ptr(&info.Target[0]))

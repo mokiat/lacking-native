@@ -9,12 +9,14 @@ func NewAPI() render.API {
 	return &API{
 		limits:   internal.NewLimits(),
 		renderer: internal.NewRenderer(),
+		queue:    internal.NewQueue(),
 	}
 }
 
 type API struct {
 	limits   *internal.Limits
 	renderer *internal.Renderer
+	queue    *internal.Queue
 }
 
 func (a *API) Limits() render.Limits {
@@ -95,6 +97,10 @@ func (a *API) CreatePipeline(info render.PipelineInfo) render.Pipeline {
 
 func (a *API) CreateCommandQueue() render.CommandQueue {
 	return internal.NewCommandQueue()
+}
+
+func (a *API) Queue() render.Queue {
+	return a.queue
 }
 
 func (a *API) BeginRenderPass(info render.RenderPassInfo) {
