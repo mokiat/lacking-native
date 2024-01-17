@@ -61,12 +61,14 @@ var DefaultFramebuffer = func() *Framebuffer {
 }()
 
 type Framebuffer struct {
-	render.FramebufferObject
+	render.FramebufferMarker
+
 	id                uint32
 	activeDrawBuffers [4]bool
 }
 
 func (f *Framebuffer) Release() {
+	framebuffers.Release(f.id)
 	gl.DeleteFramebuffers(1, &f.id)
 	f.id = 0
 	f.activeDrawBuffers = [4]bool{}

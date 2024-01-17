@@ -15,6 +15,8 @@ func NewCommandBuffer(initialCapacity int) *CommandBuffer {
 }
 
 type CommandBuffer struct {
+	render.CommandBufferMarker
+
 	data        []byte
 	writeOffset uintptr
 	readOffset  uintptr
@@ -213,7 +215,7 @@ func (b *CommandBuffer) ensure(size int) {
 	requiredSize := int(b.writeOffset) + size
 	currentSize := len(b.data)
 	if requiredSize > currentSize {
-		logger.Warn("Command buffer capacity reached! Will grow to accomodate %d.", requiredSize)
+		logger.Warn("Command buffer capacity reached! Will grow to accomodate %d bytes.", requiredSize)
 		newSize := currentSize * 2
 		for newSize < requiredSize {
 			newSize *= 2

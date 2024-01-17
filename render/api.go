@@ -21,12 +21,6 @@ func (a *API) Limits() render.Limits {
 	return a.limits
 }
 
-func (a *API) Capabilities() render.Capabilities {
-	return render.Capabilities{
-		Quality: render.QualityHigh,
-	}
-}
-
 func (a *API) DefaultFramebuffer() render.Framebuffer {
 	return internal.DefaultFramebuffer
 }

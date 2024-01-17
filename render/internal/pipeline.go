@@ -24,16 +24,14 @@ func NewPipeline(info render.PipelineInfo) *Pipeline {
 		pipeline.Topology.Topology = gl.POINTS
 	case render.TopologyLineStrip:
 		pipeline.Topology.Topology = gl.LINE_STRIP
-	case render.TopologyLineLoop:
-		pipeline.Topology.Topology = gl.LINE_LOOP
-	case render.TopologyLines:
+	case render.TopologyLineList:
 		pipeline.Topology.Topology = gl.LINES
 	case render.TopologyTriangleStrip:
 		pipeline.Topology.Topology = gl.TRIANGLE_STRIP
+	case render.TopologyTriangleList:
+		pipeline.Topology.Topology = gl.TRIANGLES
 	case render.TopologyTriangleFan:
 		pipeline.Topology.Topology = gl.TRIANGLE_FAN
-	case render.TopologyTriangles:
-		pipeline.Topology.Topology = gl.TRIANGLES
 	}
 
 	switch info.Culling {
@@ -206,7 +204,7 @@ func glEnumFromBlendFactor(factor render.BlendFactor) uint32 {
 }
 
 type Pipeline struct {
-	render.PipelineObject
+	render.PipelineMarker
 	ProgramID        uint32
 	Topology         CommandTopology
 	CullTest         CommandCullTest

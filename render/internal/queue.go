@@ -13,6 +13,8 @@ func NewQueue() *Queue {
 }
 
 type Queue struct {
+	render.QueueMarker
+
 	currentProgram                     opt.T[uint32]
 	currentTopology                    opt.T[uint32]
 	currentIndexType                   opt.T[uint32]
@@ -80,7 +82,6 @@ func (q *Queue) Invalidate() {
 	q.currentBlendSourceFactorAlpha = opt.Unspecified[uint32]()
 	q.currentBlendDestinationFactorAlpha = opt.Unspecified[uint32]()
 
-	gl.Enable(gl.PRIMITIVE_RESTART_FIXED_INDEX)
 	// TODO: Get rid of these, not available in WebGPU
 	// nor in WebGL2. Use shader checks instead.
 	gl.Enable(gl.CLIP_DISTANCE0)
@@ -93,6 +94,13 @@ func (q *Queue) WriteBuffer(buffer render.Buffer, offset int, data []byte) {
 	actualBuffer := buffer.(*Buffer)
 	gl.BindBuffer(actualBuffer.kind, actualBuffer.id)
 	gl.BufferSubData(actualBuffer.kind, offset, len(data), gl.Ptr(&data[0]))
+	gl.BindBuffer(actualBuffer.kind, 0)
+}
+
+func (q *Queue) ReadBuffer(buffer render.Buffer, offset int, target []byte) {
+	actualBuffer := buffer.(*Buffer)
+	gl.BindBuffer(actualBuffer.kind, actualBuffer.id)
+	gl.GetBufferSubData(actualBuffer.kind, offset, len(target), gl.Ptr(&target[0]))
 	gl.BindBuffer(actualBuffer.kind, 0)
 }
 
