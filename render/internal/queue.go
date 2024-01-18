@@ -42,12 +42,12 @@ type Queue struct {
 	currentColorMask                   opt.T[[4]bool]
 	currentBlending                    opt.T[bool]
 	currentBlendColor                  opt.T[[4]float32]
-	currentBlendModeRGB                opt.T[uint32]
-	currentBlendModeAlpha              opt.T[uint32]
 	currentBlendSourceFactorRGB        opt.T[uint32]
 	currentBlendDestinationFactorRGB   opt.T[uint32]
 	currentBlendSourceFactorAlpha      opt.T[uint32]
 	currentBlendDestinationFactorAlpha opt.T[uint32]
+	currentBlendModeRGB                opt.T[uint32]
+	currentBlendModeAlpha              opt.T[uint32]
 }
 
 func (q *Queue) Invalidate() {
@@ -76,11 +76,14 @@ func (q *Queue) Invalidate() {
 	q.currentStencilMaskFront = opt.Unspecified[uint32]()
 	q.currentStencilMaskBack = opt.Unspecified[uint32]()
 	q.currentColorMask = opt.Unspecified[[4]bool]()
+	q.currentBlending = opt.Unspecified[bool]()
 	q.currentBlendColor = opt.Unspecified[[4]float32]()
 	q.currentBlendSourceFactorRGB = opt.Unspecified[uint32]()
 	q.currentBlendDestinationFactorRGB = opt.Unspecified[uint32]()
 	q.currentBlendSourceFactorAlpha = opt.Unspecified[uint32]()
 	q.currentBlendDestinationFactorAlpha = opt.Unspecified[uint32]()
+	q.currentBlendModeRGB = opt.Unspecified[uint32]()
+	q.currentBlendModeAlpha = opt.Unspecified[uint32]()
 
 	// TODO: Get rid of these, not available in WebGPU
 	// nor in WebGL2. Use shader checks instead.

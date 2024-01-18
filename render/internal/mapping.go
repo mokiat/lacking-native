@@ -1,10 +1,5 @@
 package internal
 
-// TODO: Experiment with using a slice as a mapping mechanism
-// instead of a map.
-// It is possible to use a freeIDs slice to keep track of
-// freed up slots so that the array need not be iterated.
-
 func newMapper[T any]() *Mapper[T] {
 	return &Mapper[T]{
 		mapping: make(map[uint32]T),
