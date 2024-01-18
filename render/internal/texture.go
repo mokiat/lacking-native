@@ -43,7 +43,7 @@ func NewDepthTexture2D(info render.DepthTexture2DInfo) *Texture {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
-	if info.ClippedValue != nil {
+	if info.ClippedValue.Specified {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	} else {
@@ -149,7 +149,7 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 }
 
 type Texture struct {
-	render.TextureObject
+	render.TextureMarker
 	id   uint32
 	kind uint32
 }

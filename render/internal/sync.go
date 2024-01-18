@@ -12,7 +12,8 @@ func NewFence() *Fence {
 }
 
 type Fence struct {
-	render.FenceObject
+	render.FenceMarker
+
 	id uintptr
 }
 
@@ -25,11 +26,11 @@ func (f *Fence) Status() render.FenceStatus {
 	case gl.UNSIGNALED:
 		return render.FenceStatusNotReady
 	default:
-		return render.FenceStatusDeviceLost
+		return render.FenceStatusNotReady
 	}
 }
 
-func (f *Fence) Delete() {
+func (f *Fence) Release() {
 	gl.DeleteSync(f.id)
 	f.id = 0
 }

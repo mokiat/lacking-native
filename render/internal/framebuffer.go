@@ -43,24 +43,32 @@ func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
 		logger.Error("Framebuffer (%q) is incomplete!", info.Label)
 	}
 
-	return &Framebuffer{
+	result := &Framebuffer{
 		id:                id,
 		activeDrawBuffers: activeDrawBuffers,
 	}
+	framebuffers.Track(result.id, result)
+	return result
 }
 
-var DefaultFramebuffer = &Framebuffer{
-	id:                0,
-	activeDrawBuffers: [4]bool{true, false, false, false},
-}
+var DefaultFramebuffer = func() *Framebuffer {
+	result := &Framebuffer{
+		id:                0,
+		activeDrawBuffers: [4]bool{true, false, false, false},
+	}
+	framebuffers.Track(result.id, result)
+	return result
+}()
 
 type Framebuffer struct {
-	render.FramebufferObject
+	render.FramebufferMarker
+
 	id                uint32
 	activeDrawBuffers [4]bool
 }
 
 func (f *Framebuffer) Release() {
+	framebuffers.Release(f.id)
 	gl.DeleteFramebuffers(1, &f.id)
 	f.id = 0
 	f.activeDrawBuffers = [4]bool{}

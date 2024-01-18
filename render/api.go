@@ -7,24 +7,18 @@ import (
 
 func NewAPI() render.API {
 	return &API{
-		limits:   internal.NewLimits(),
-		renderer: internal.NewRenderer(),
+		limits: internal.NewLimits(),
+		queue:  internal.NewQueue(),
 	}
 }
 
 type API struct {
-	limits   *internal.Limits
-	renderer *internal.Renderer
+	limits *internal.Limits
+	queue  *internal.Queue
 }
 
 func (a *API) Limits() render.Limits {
 	return a.limits
-}
-
-func (a *API) Capabilities() render.Capabilities {
-	return render.Capabilities{
-		Quality: render.QualityHigh,
-	}
 }
 
 func (a *API) DefaultFramebuffer() render.Framebuffer {
@@ -93,30 +87,10 @@ func (a *API) CreatePipeline(info render.PipelineInfo) render.Pipeline {
 	return internal.NewPipeline(info)
 }
 
-func (a *API) CreateCommandQueue() render.CommandQueue {
-	return internal.NewCommandQueue()
+func (a *API) CreateCommandBuffer(initialCapacity int) render.CommandBuffer {
+	return internal.NewCommandBuffer(initialCapacity)
 }
 
-func (a *API) BeginRenderPass(info render.RenderPassInfo) {
-	a.renderer.BeginRenderPass(info)
-}
-
-func (a *API) EndRenderPass() {
-	a.renderer.EndRenderPass()
-}
-
-func (a *API) Invalidate() {
-	a.renderer.Invalidate()
-}
-
-func (a *API) CopyContentToTexture(info render.CopyContentToTextureInfo) {
-	a.renderer.CopyContentToTexture(info)
-}
-
-func (a *API) SubmitQueue(queue render.CommandQueue) {
-	a.renderer.SubmitQueue(queue.(*internal.CommandQueue))
-}
-
-func (a *API) CreateFence() render.Fence {
-	return internal.NewFence()
+func (a *API) Queue() render.Queue {
+	return a.queue
 }

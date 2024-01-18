@@ -1,219 +1,90 @@
 package internal
 
-import (
-	"fmt"
-	"unsafe"
-
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/mokiat/lacking/render"
-)
-
-func NewCommandQueue() *CommandQueue {
-	return &CommandQueue{
-		data: make([]byte, 1024*1024),
-	}
-}
-
-type CommandQueue struct {
-	data        []byte
-	writeOffset uintptr
-	readOffset  uintptr
-}
-
-func (q *CommandQueue) Reset() {
-	q.readOffset = 0
-	q.writeOffset = 0
-}
-
-func (q *CommandQueue) BindPipeline(pipeline render.Pipeline) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindBindPipeline,
-	})
-	intPipeline := pipeline.(*Pipeline)
-	PushCommand(q, CommandBindPipeline{
-		ProgramID:        intPipeline.ProgramID,
-		Topology:         intPipeline.Topology,
-		CullTest:         intPipeline.CullTest,
-		FrontFace:        intPipeline.FrontFace,
-		DepthTest:        intPipeline.DepthTest,
-		DepthWrite:       intPipeline.DepthWrite,
-		DepthComparison:  intPipeline.DepthComparison,
-		StencilTest:      intPipeline.StencilTest,
-		StencilOpFront:   intPipeline.StencilOpFront,
-		StencilOpBack:    intPipeline.StencilOpBack,
-		StencilFuncFront: intPipeline.StencilFuncFront,
-		StencilFuncBack:  intPipeline.StencilFuncBack,
-		StencilMaskFront: intPipeline.StencilMaskFront,
-		StencilMaskBack:  intPipeline.StencilMaskBack,
-		ColorWrite:       intPipeline.ColorWrite,
-		BlendEnabled:     intPipeline.BlendEnabled,
-		BlendColor:       intPipeline.BlendColor,
-		BlendEquation:    intPipeline.BlendEquation,
-		BlendFunc:        intPipeline.BlendFunc,
-		VertexArray:      intPipeline.VertexArray,
-	})
-}
-
-func (q *CommandQueue) UniformBufferUnit(index int, buffer render.Buffer) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindUniformBufferUnit,
-	})
-	PushCommand(q, CommandUniformBufferUnit{
-		Index:    uint32(index),
-		BufferID: buffer.(*Buffer).id,
-	})
-}
-
-func (q *CommandQueue) UniformBufferUnitRange(index int, buffer render.Buffer, offset, size int) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindUniformBufferUnitRange,
-	})
-	PushCommand(q, CommandUniformBufferUnitRange{
-		Index:    uint32(index),
-		BufferID: buffer.(*Buffer).id,
-		Offset:   uint32(offset),
-		Size:     uint32(size),
-	})
-}
-
-func (q *CommandQueue) TextureUnit(index int, texture render.Texture) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindTextureUnit,
-	})
-	PushCommand(q, CommandTextureUnit{
-		Index:     uint32(index),
-		TextureID: texture.(*Texture).id,
-	})
-}
-
-func (q *CommandQueue) Draw(vertexOffset, vertexCount, instanceCount int) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindDraw,
-	})
-	PushCommand(q, CommandDraw{
-		VertexOffset:  int32(vertexOffset),
-		VertexCount:   int32(vertexCount),
-		InstanceCount: int32(instanceCount),
-	})
-}
-
-func (q *CommandQueue) DrawIndexed(indexOffset, indexCount, instanceCount int) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindDrawIndexed,
-	})
-	PushCommand(q, CommandDrawIndexed{
-		IndexOffset:   int32(indexOffset),
-		IndexCount:    int32(indexCount),
-		InstanceCount: int32(instanceCount),
-	})
-}
-
-func (q *CommandQueue) CopyContentToBuffer(info render.CopyContentToBufferInfo) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindCopyContentToBuffer,
-	})
-	var format, xtype uint32
-	switch info.Format {
-	case render.DataFormatRGBA8:
-		format = gl.RGBA
-		xtype = gl.UNSIGNED_BYTE
-	case render.DataFormatRGBA16F:
-		format = gl.RGBA
-		xtype = gl.HALF_FLOAT
-	case render.DataFormatRGBA32F:
-		format = gl.RGBA
-		xtype = gl.FLOAT
-	default:
-		panic(fmt.Errorf("unsupported data format %v", info.Format))
-	}
-	PushCommand(q, CommandCopyContentToBuffer{
-		BufferID:     info.Buffer.(*Buffer).id,
-		X:            int32(info.X),
-		Y:            int32(info.Y),
-		Width:        int32(info.Width),
-		Height:       int32(info.Height),
-		Format:       format,
-		XType:        xtype,
-		BufferOffset: uint32(info.Offset),
-	})
-}
-
-func (q *CommandQueue) UpdateBufferData(buffer render.Buffer, info render.BufferUpdateInfo) {
-	PushCommand(q, CommandHeader{
-		Kind: CommandKindUpdateBufferData,
-	})
-	PushCommand(q, CommandUpdateBufferData{
-		BufferID: buffer.(*Buffer).id,
-		Offset:   uint32(info.Offset),
-		Count:    uint32(len(info.Data)),
-	})
-	PushData(q, info.Data)
-}
-
-func (q *CommandQueue) Release() {
-	q.data = nil
-}
-
-func (q *CommandQueue) ensure(size int) {
-	requiredSize := int(q.writeOffset) + size
-	currentSize := len(q.data)
-	if requiredSize > currentSize {
-		newSize := currentSize * 2
-		for newSize < requiredSize {
-			newSize *= 2
-		}
-		newData := make([]byte, newSize)
-		copy(newData, q.data)
-		q.data = newData
-	}
-}
-
-func MoreCommands(queue *CommandQueue) bool {
-	return queue.writeOffset > queue.readOffset
-}
-
-func PushCommand[T any](queue *CommandQueue, command T) {
-	size := unsafe.Sizeof(command)
-	queue.ensure(int(size))
-	target := (*T)(unsafe.Add(unsafe.Pointer(&queue.data[0]), queue.writeOffset))
-	*target = command
-	queue.writeOffset += size
-}
-
-func PushData(queue *CommandQueue, data []byte) {
-	queue.ensure(len(data))
-	copy(queue.data[queue.writeOffset:], data)
-	queue.writeOffset += uintptr(len(data))
-}
-
-func PopCommand[T any](queue *CommandQueue) T {
-	target := (*T)(unsafe.Add(unsafe.Pointer(&queue.data[0]), queue.readOffset))
-	command := *target
-	queue.readOffset += unsafe.Sizeof(command)
-	return command
-}
-
-func PopData(queue *CommandQueue, count uint32) []byte {
-	result := queue.data[queue.readOffset : queue.readOffset+uintptr(count)]
-	queue.readOffset += uintptr(count)
-	return result
-}
+import "github.com/mokiat/lacking/render"
 
 type CommandKind uint8
 
 const (
-	CommandKindBindPipeline CommandKind = iota
+	CommandKindCopyFramebufferToBuffer CommandKind = iota
+	CommandKindCopyFramebufferToTexture
+	CommandKindBeginRenderPass
+	CommandKindEndRenderPass
+	CommandKindBindPipeline
 	CommandKindUniformBufferUnit
-	CommandKindUniformBufferUnitRange
 	CommandKindTextureUnit
 	CommandKindDraw
 	CommandKindDrawIndexed
-	CommandKindCopyContentToBuffer
-	CommandKindUpdateBufferData
 )
 
 type CommandHeader struct {
 	Kind CommandKind
+}
+
+type CommandCopyFramebufferToBuffer struct {
+	BufferID     uint32
+	X            int32
+	Y            int32
+	Width        int32
+	Height       int32
+	Format       uint32
+	XType        uint32
+	BufferOffset uint32
+}
+
+type CommandCopyFramebufferToTexture struct {
+	TextureID       uint32
+	TextureLevel    int32
+	TextureX        int32
+	TextureY        int32
+	FramebufferX    int32
+	FramebufferY    int32
+	Width           int32
+	Height          int32
+	GenerateMipmaps bool
+}
+
+type CommandBeginRenderPass struct {
+	FramebufferID     uint32
+	ViewportX         int32
+	ViewportY         int32
+	ViewportWidth     int32
+	ViewportHeight    int32
+	Colors            [4]CommandColorAttachment
+	DepthLoadOp       CommandLoadOperation
+	DepthStoreOp      CommandStoreOperation
+	DepthClearValue   float32
+	StencilLoadOp     CommandLoadOperation
+	StencilStoreOp    CommandStoreOperation
+	StencilClearValue int32
+}
+
+type CommandColorAttachment struct {
+	LoadOp     CommandLoadOperation
+	StoreOp    CommandStoreOperation
+	ClearValue [4]float32
+}
+
+type CommandLoadOperation uint8
+
+func CommandLoadOperationFromRender(value render.LoadOperation) CommandLoadOperation {
+	return CommandLoadOperation(value)
+}
+
+func CommandLoadOperationToRender(value CommandLoadOperation) render.LoadOperation {
+	return render.LoadOperation(value)
+}
+
+type CommandStoreOperation uint8
+
+func CommandStoreOperationFromRender(value render.StoreOperation) CommandStoreOperation {
+	return CommandStoreOperation(value)
+}
+
+func CommandStoreOperationToRender(value CommandStoreOperation) render.StoreOperation {
+	return render.StoreOperation(value)
+}
+
+type CommandEndRenderPass struct {
 }
 
 type CommandBindPipeline struct {
@@ -315,11 +186,6 @@ type CommandBindVertexArray struct {
 type CommandUniformBufferUnit struct {
 	Index    uint32
 	BufferID uint32
-}
-
-type CommandUniformBufferUnitRange struct {
-	Index    uint32
-	BufferID uint32
 	Offset   uint32
 	Size     uint32
 }
@@ -339,21 +205,4 @@ type CommandDrawIndexed struct {
 	IndexOffset   int32
 	IndexCount    int32
 	InstanceCount int32
-}
-
-type CommandCopyContentToBuffer struct {
-	BufferID     uint32
-	X            int32
-	Y            int32
-	Width        int32
-	Height       int32
-	Format       uint32
-	XType        uint32
-	BufferOffset uint32
-}
-
-type CommandUpdateBufferData struct {
-	BufferID uint32
-	Offset   uint32
-	Count    uint32
 }
