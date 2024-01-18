@@ -4,10 +4,10 @@ go 1.21
 
 require (
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240108052320-294b0144ba39
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240118000515-a250818d05e3
 	github.com/mokiat/gog v0.11.1
 	github.com/mokiat/gomath v0.8.1
-	github.com/mokiat/lacking v0.16.0
+	github.com/mokiat/lacking v0.17.0
 	golang.org/x/image v0.15.0
 )
 
