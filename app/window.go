@@ -106,7 +106,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		}, gl.PtrOffset(0))
 	}
 
-	l := newLoop(cfg.locator, cfg.title, window, controller)
+	l := newLoop(cfg.locator, cfg.title, window, controller, cfg.audioEnabled)
 
 	if cfg.cursor != nil {
 		cursor := l.CreateCursor(*cfg.cursor)

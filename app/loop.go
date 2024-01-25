@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
+	nativeaudio "github.com/mokiat/lacking-native/audio"
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/audio"
+	"github.com/mokiat/lacking/debug/log"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/util/resource"
@@ -18,7 +20,17 @@ const (
 	taskProcessingTimeout = 30 * time.Millisecond
 )
 
-func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, controller app.Controller) *loop {
+func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, controller app.Controller, audioEnabled bool) *loop {
+	var audioAPI *nativeaudio.API
+	if audioEnabled {
+		var err error
+		audioAPI, err = nativeaudio.NewAPI()
+		if err != nil {
+			log.Error("Failed to initialize audio: %v", err)
+			audioAPI = nil
+		}
+	}
+
 	return &loop{
 		platform:      newPlatform(),
 		locator:       locator,
@@ -26,7 +38,7 @@ func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, co
 		window:        window,
 		controller:    controller,
 		renderAPI:     glrender.NewAPI(),
-		audioAPI:      audio.NewNopAPI(),
+		audioAPI:      audioAPI,
 		tasks:         make(chan func(), taskQueueSize),
 		shouldStop:    false,
 		shouldDraw:    true,
@@ -50,7 +62,7 @@ type loop struct {
 	window        *glfw.Window
 	controller    app.Controller
 	renderAPI     render.API
-	audioAPI      audio.API
+	audioAPI      *nativeaudio.API
 	tasks         chan func()
 	shouldStop    bool
 	shouldDraw    bool
@@ -61,6 +73,10 @@ type loop struct {
 }
 
 func (l *loop) Run() error {
+	if l.audioAPI != nil {
+		defer l.audioAPI.Close()
+	}
+
 	l.controller.OnCreate(l)
 
 	l.window.SetRefreshCallback(l.onGLFWRefresh)
@@ -234,6 +250,9 @@ func (l *loop) RenderAPI() render.API {
 }
 
 func (l *loop) AudioAPI() audio.API {
+	if l.audioAPI == nil {
+		return audio.NewNopAPI()
+	}
 	return l.audioAPI
 }
 
