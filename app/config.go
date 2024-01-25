@@ -15,6 +15,7 @@ func NewConfig(title string, width, height int) *Config {
 		height:        height,
 		swapInterval:  1,
 		cursorVisible: true,
+		audioEnabled:  true,
 	}
 }
 
@@ -34,6 +35,17 @@ type Config struct {
 	cursorVisible bool
 	cursor        *app.CursorDefinition
 	icon          string
+	audioEnabled  bool
+}
+
+// Title returns the title of the application window.
+func (c *Config) Title() string {
+	return c.title
+}
+
+// SetTitle sets the title of the application window.
+func (c *Config) SetTitle(title string) {
+	c.title = title
 }
 
 // SetMinSize sets a minimum size for the window.
@@ -163,4 +175,14 @@ func (c *Config) SetLocator(locator resource.ReadLocator) {
 // app-specific resources (e.g. icon).
 func (c *Config) Locator() resource.ReadLocator {
 	return c.locator
+}
+
+// AudioEnabled returns whether audio will be enabled.
+func (c *Config) AudioEnabled() bool {
+	return c.audioEnabled
+}
+
+// SetAudioEnabled specifies whether audio should be enabled.
+func (c *Config) SetAudioEnabled(enabled bool) {
+	c.audioEnabled = enabled
 }
