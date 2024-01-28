@@ -2,6 +2,8 @@ package internal
 
 import (
 	"time"
+
+	"github.com/mokiat/gomath/sprec"
 )
 
 type Media struct {
@@ -45,6 +47,31 @@ func (f *MediaFrame) Add(other MediaFrame) {
 func (f *MediaFrame) ApplyGain(gain float32) {
 	f.Left *= gain
 	f.Right *= gain
+}
+
+func (f *MediaFrame) ApplyPan(pan float32) {
+	// Note: This algorithm is consistent with WebAudio's pan algorithm.
+	// https://webaudio.github.io/web-audio-api/#stereopanner-algorithm
+	pan = max(min(pan, 1.0), -1.0)
+
+	angleFraction := pan
+	if angleFraction < 0.0 {
+		angleFraction += 1.0
+	}
+
+	leftGain := sprec.Cos(sprec.Radians(angleFraction * sprec.Pi / 2.0))
+	rightGain := sprec.Sin(sprec.Radians(angleFraction * sprec.Pi / 2.0))
+
+	var newLeft, newRight float32
+	if pan >= 0.0 {
+		newLeft = (f.Left * leftGain)
+		newRight = (f.Left * rightGain) + f.Right
+	} else {
+		newLeft = (f.Right * leftGain) + f.Left
+		newRight = (f.Right * rightGain)
+	}
+	f.Left = newLeft
+	f.Right = newRight
 }
 
 func (f *MediaFrame) Clamp() {

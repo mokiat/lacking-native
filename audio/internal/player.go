@@ -138,6 +138,7 @@ func (p *Player) onSamples(pOutputSample, pInputSamples []byte, framecount uint3
 				continue
 			}
 			frame.ApplyGain(playback.gain)
+			frame.ApplyPan(playback.pan)
 
 			aggFrame.Add(frame)
 		}
