@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math"
 	"sync"
 
 	"github.com/gen2brain/malgo"
@@ -61,28 +60,41 @@ func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
 	decoder, err := mp3.NewDecoder(bytes.NewReader(info.Data))
 	if err != nil {
 		log.Error("Error creating decoder: %v", err)
-		return &Media{}
+		return nil
 	}
 
 	if decoder.SampleRate() != 44100 {
-		log.Warn("Unsupported sample rate: %d", decoder.SampleRate())
-		return &Media{}
+		//  TODO: Handle resample in the future.
+		log.Error("Unsupported sample rate: %d", decoder.SampleRate())
+		return nil
 	}
 
 	data, err := io.ReadAll(decoder)
 	if err != nil {
 		log.Error("Error reading decoder: %v", err)
-		return &Media{}
+		return nil
 	}
 	buffer := gblob.LittleEndianBlock(data)
 
-	frames := make([]mediaSample, len(data)/4)
-	for i := 0; i < len(frames); i++ {
-		frames[i].Left = buffer.Int16(i*4 + 0)
-		frames[i].Right = buffer.Int16(i*4 + 2)
+	length := len(data) / 4
+	leftChannel := Channel{
+		samples: make([]float32, length),
 	}
+	rightChannel := Channel{
+		samples: make([]float32, length),
+	}
+	for i := 0; i < length; i++ {
+		leftInt16 := buffer.Int16(i*4 + 0)
+		rightInt16 := buffer.Int16(i*4 + 2)
+		leftChannel.samples[i] = int16ToFloat32(leftInt16)
+		rightChannel.samples[i] = int16ToFloat32(rightInt16)
+	}
+
 	return &Media{
-		frames: frames,
+		sampleRate:   44100,
+		length:       length,
+		leftChannel:  leftChannel,
+		rightChannel: rightChannel,
 	}
 }
 
@@ -113,26 +125,20 @@ func (p *Player) onSamples(pOutputSample, pInputSamples []byte, framecount uint3
 	buffer := gblob.LittleEndianBlock(pOutputSample)
 
 	for i := 0; i < int(framecount); i++ {
-		var left int64
-		var right int64
+		var aggFrame MediaFrame
 
 		for playback := range p.playbacks {
-			sample, ok := playback.Frame()
+			frame, ok := playback.Frame()
 			if !ok {
 				delete(p.playbacks, playback)
 				continue
 			}
-			left += int64(sample.Left)
-			right += int64(sample.Right)
+			aggFrame.Add(frame)
 		}
 
-		left = min(int64(math.MaxInt16), left)
-		right = min(int64(math.MaxInt16), right)
-		left = max(int64(math.MinInt16), left)
-		right = max(int64(math.MinInt16), right)
-
-		buffer.SetInt16(i*4+0, int16(left))
-		buffer.SetInt16(i*4+2, int16(right))
+		aggFrame.Clamp()
+		buffer.SetInt16(i*4+0, float32ToInt16(aggFrame.Left))
+		buffer.SetInt16(i*4+2, float32ToInt16(aggFrame.Right))
 	}
 }
 
