@@ -103,8 +103,12 @@ func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
 	defer p.playbackMU.Unlock()
 
 	playback := &Playback{
-		media:  media,
-		loop:   info.Loop,
+		media: media,
+
+		loop: info.Loop,
+		gain: float32(info.Gain),
+		pan:  float32(info.Pan),
+
 		offset: 0,
 	}
 	p.playbacks[playback] = struct{}{}
@@ -133,6 +137,8 @@ func (p *Player) onSamples(pOutputSample, pInputSamples []byte, framecount uint3
 				delete(p.playbacks, playback)
 				continue
 			}
+			frame.ApplyGain(playback.gain)
+
 			aggFrame.Add(frame)
 		}
 

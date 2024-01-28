@@ -42,6 +42,11 @@ func (f *MediaFrame) Add(other MediaFrame) {
 	f.Right += other.Right
 }
 
+func (f *MediaFrame) ApplyGain(gain float32) {
+	f.Left *= gain
+	f.Right *= gain
+}
+
 func (f *MediaFrame) Clamp() {
 	f.Left = max(min(f.Left, 1.0), -1.0)
 	f.Right = max(min(f.Right, 1.0), -1.0)

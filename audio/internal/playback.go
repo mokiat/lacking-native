@@ -5,7 +5,10 @@ import "sync/atomic"
 type Playback struct {
 	media *Media
 
-	loop   bool
+	loop bool
+	gain float32
+	pan  float32
+
 	offset int64
 }
 
