@@ -130,6 +130,9 @@ func (q *Queue) Submit(commands render.CommandBuffer) {
 		case CommandKindTextureUnit:
 			command := readCommandChunk[CommandTextureUnit](commandBuffer)
 			q.executeCommandTextureUnit(command)
+		case CommandKindSamplerUnit:
+			command := readCommandChunk[CommandSamplerUnit](commandBuffer)
+			q.executeCommandSamplerUnit(command)
 		case CommandKindUniformBufferUnit:
 			command := readCommandChunk[CommandUniformBufferUnit](commandBuffer)
 			q.executeCommandUniformBufferUnit(command)
@@ -561,6 +564,15 @@ func (q *Queue) executeCommandTextureUnit(command CommandTextureUnit) {
 	texture := textures.Get(command.TextureID)
 	gl.ActiveTexture(gl.TEXTURE0 + command.Index)
 	gl.BindTexture(texture.kind, texture.id)
+}
+
+func (q *Queue) executeCommandSamplerUnit(command CommandSamplerUnit) {
+	if command.SamplerID != 0 {
+		sampler := samplers.Get(command.SamplerID)
+		gl.BindSampler(command.Index, sampler.id)
+	} else {
+		gl.BindSampler(command.Index, 0) // disable
+	}
 }
 
 func (q *Queue) executeCommandUniformBufferUnit(command CommandUniformBufferUnit) {

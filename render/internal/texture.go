@@ -161,6 +161,34 @@ func (t *Texture) Release() {
 	t.kind = 0
 }
 
+func NewSampler(info render.SamplerInfo) *Sampler {
+	var id uint32
+	gl.GenSamplers(1, &id)
+	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_S, glWrap(info.Wrapping))
+	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_T, glWrap(info.Wrapping))
+	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_R, glWrap(info.Wrapping))
+
+	gl.SamplerParameteri(id, gl.TEXTURE_MIN_FILTER, glFilter(info.Filtering, info.Mipmapping))
+	gl.SamplerParameteri(id, gl.TEXTURE_MAG_FILTER, glFilter(info.Filtering, false)) // no mipmaps when magnification
+
+	result := &Sampler{
+		id: id,
+	}
+	samplers.Track(result.id, result)
+	return result
+}
+
+type Sampler struct {
+	render.SamplerMarker
+	id uint32
+}
+
+func (s *Sampler) Release() {
+	samplers.Release(s.id)
+	gl.DeleteSamplers(1, &s.id)
+	s.id = 0
+}
+
 func glWrap(wrap render.WrapMode) int32 {
 	switch wrap {
 	case render.WrapModeClamp:

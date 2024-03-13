@@ -153,6 +153,21 @@ func (b *CommandBuffer) TextureUnit(index int, texture render.Texture) {
 	})
 }
 
+func (b *CommandBuffer) SamplerUnit(index int, sampler render.Sampler) {
+	b.verifyIsRenderPass()
+	writeCommandChunk(b, CommandHeader{
+		Kind: CommandKindSamplerUnit,
+	})
+	samplerID := uint32(0) // disable
+	if sampler != nil {
+		samplerID = sampler.(*Sampler).id
+	}
+	writeCommandChunk(b, CommandSamplerUnit{
+		Index:     uint32(index),
+		SamplerID: samplerID,
+	})
+}
+
 func (b *CommandBuffer) UniformBufferUnit(index int, buffer render.Buffer, offset, size int) {
 	b.verifyIsRenderPass()
 	writeCommandChunk(b, CommandHeader{

@@ -6,7 +6,6 @@ import (
 	"github.com/mokiat/lacking-native/internal/shader"
 	"github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/game/graphics"
-	"github.com/mokiat/lacking/game/graphics/shading"
 	renderapi "github.com/mokiat/lacking/render"
 )
 
@@ -17,7 +16,6 @@ var construct = shader.Load(
 
 func NewShaderCollection() graphics.ShaderCollection {
 	return graphics.ShaderCollection{
-		BuildForward:        buildForward,
 		ShadowMappingSet:    newShadowMappingSet,
 		PBRGeometrySet:      newPBRGeometrySet,
 		DirectionalLightSet: newDirectionalLightShaderSet,
@@ -29,74 +27,6 @@ func NewShaderCollection() graphics.ShaderCollection {
 		DebugSet:            newDebugShaderSet,
 		ExposureSet:         newExposureShaderSet,
 		PostprocessingSet:   newPostprocessingShaderSet,
-	}
-}
-
-func buildForward(cfg graphics.MeshConfig, fn shading.ForwardFunc) renderapi.ProgramCode {
-	var vertexSettings struct {
-		UseArmature bool
-	}
-	if cfg.HasArmature {
-		vertexSettings.UseArmature = true
-	}
-
-	var fragmentSettings struct {
-		Lines []string
-	}
-
-	palette := shading.NewForwardPalette()
-	fn(palette)
-
-	paramIndex := 0
-	paramNames := make(map[shading.Parameter]string)
-	for _, node := range palette.Nodes() {
-		switch node := node.(type) {
-		case *shading.ConstVec4Node:
-			outParam := node.OutVec()
-			if !outParam.IsUsed() {
-				continue
-			}
-			paramName := fmt.Sprintf("param%d", func() int {
-				paramIndex++
-				return paramIndex
-			}())
-			paramNames[outParam] = paramName
-
-			fragmentSettings.Lines = append(fragmentSettings.Lines,
-				fmt.Sprintf("vec4 %s = vec4(%f, %f, %f, %f);", paramName, node.X(), node.Y(), node.Z(), node.W()),
-			)
-
-		case *shading.MulVec4Node:
-			outParam := node.OutVec()
-			if !outParam.IsUsed() {
-				continue
-			}
-			paramName := fmt.Sprintf("param%d", func() int {
-				paramIndex++
-				return paramIndex
-			}())
-			paramNames[outParam] = paramName
-
-			fragmentSettings.Lines = append(fragmentSettings.Lines,
-				fmt.Sprintf("vec4 %s = %f * %s;", paramName, node.Ratio(), paramNames[node.InVec()]),
-			)
-
-		case *shading.OutputColorNode:
-			paramName, ok := paramNames[node.InColor()]
-			if !ok {
-				panic(fmt.Errorf("could not find param name for param of type %T", node.InColor()))
-			}
-			fragmentSettings.Lines = append(fragmentSettings.Lines,
-				fmt.Sprintf("fbColor0Out = %s;", paramName),
-			)
-		default:
-			panic(fmt.Errorf("unknown node type: %T", node))
-		}
-	}
-
-	return render.ProgramCode{
-		VertexCode:   construct("custom.vert.glsl", vertexSettings),
-		FragmentCode: construct("custom.frag.glsl", fragmentSettings),
 	}
 }
 

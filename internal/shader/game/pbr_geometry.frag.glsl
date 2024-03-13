@@ -4,7 +4,7 @@ layout(location = 0) out vec4 fbColor0Out;
 layout(location = 1) out vec4 fbColor1Out;
 
 /*if .UseAlbedoTexture*/
-uniform sampler2D albedoTwoDTextureIn;
+uniform sampler2D lackingTexture0;
 /*end*/
 
 /*template "ubo_material.glsl"*/
@@ -20,7 +20,7 @@ smooth in vec4 colorInOut;
 void main()
 {
 	/*if .UseAlbedoTexture*/
-	vec4 color = texture(albedoTwoDTextureIn, texCoordInOut);
+	vec4 color = texture(lackingTexture0, texCoordInOut);
 	/*else if .UseVertexColoring*/
 	vec4 color = colorInOut;
 	/*else*/

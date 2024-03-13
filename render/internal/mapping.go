@@ -25,5 +25,6 @@ func (m *Mapper[T]) Get(id uint32) T {
 var (
 	framebuffers = newMapper[*Framebuffer]()
 	textures     = newMapper[*Texture]()
+	samplers     = newMapper[*Sampler]()
 	buffers      = newMapper[*Buffer]()
 )

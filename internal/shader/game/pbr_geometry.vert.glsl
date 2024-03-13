@@ -17,6 +17,10 @@ layout(location = 6) in uvec4 jointsIn;
 
 /*template "ubo_model.glsl"*/
 
+/*if .UseArmature*/
+/*template "ubo_armature.glsl"*/
+/*end*/
+
 smooth out vec3 normalInOut;
 /*if .UseTexturing*/
 smooth out vec2 texCoordInOut;
@@ -34,25 +38,28 @@ void main()
 	colorInOut = colorIn;
 	/*end*/
 	/*if .UseArmature*/
-	mat4 modelMatrixA = modelMatrixIn[jointsIn.x];
-	mat4 modelMatrixB = modelMatrixIn[jointsIn.y];
-	mat4 modelMatrixC = modelMatrixIn[jointsIn.z];
-	mat4 modelMatrixD = modelMatrixIn[jointsIn.w];
+	mat4 boneMatrixA = boneMatrixIn[jointsIn.x];
+	mat4 boneMatrixB = boneMatrixIn[jointsIn.y];
+	mat4 boneMatrixC = boneMatrixIn[jointsIn.z];
+	mat4 boneMatrixD = boneMatrixIn[jointsIn.w];
 	vec4 worldPosition =
-		modelMatrixA * (coordIn * weightsIn.x) +
-		modelMatrixB * (coordIn * weightsIn.y) +
-		modelMatrixC * (coordIn * weightsIn.z) +
-		modelMatrixD * (coordIn * weightsIn.w);
+		boneMatrixA * (coordIn * weightsIn.x) +
+		boneMatrixB * (coordIn * weightsIn.y) +
+		boneMatrixC * (coordIn * weightsIn.z) +
+		boneMatrixD * (coordIn * weightsIn.w);
 	vec3 worldNormal =
-		inverse(transpose(mat3(modelMatrixA))) * (normalIn * weightsIn.x) +
-		inverse(transpose(mat3(modelMatrixB))) * (normalIn * weightsIn.y) +
-		inverse(transpose(mat3(modelMatrixC))) * (normalIn * weightsIn.z) +
-		inverse(transpose(mat3(modelMatrixD))) * (normalIn * weightsIn.w);
+		inverse(transpose(mat3(boneMatrixA))) * (normalIn * weightsIn.x) +
+		inverse(transpose(mat3(boneMatrixB))) * (normalIn * weightsIn.y) +
+		inverse(transpose(mat3(boneMatrixC))) * (normalIn * weightsIn.z) +
+		inverse(transpose(mat3(boneMatrixD))) * (normalIn * weightsIn.w);
 	/*else*/
 	mat4 modelMatrix = modelMatrixIn[gl_InstanceID];
 	vec4 worldPosition = modelMatrix * coordIn;
 	vec3 worldNormal = inverse(transpose(mat3(modelMatrix))) * normalIn;
 	/*end*/
+	// NOTE: For custom shaders: To get the model position of the vertex
+	// just multiply the coordIn by the inverse modelMatrixIn. Don't change
+	// the armature to relative matrices.
 	normalInOut = worldNormal;
 	gl_Position = projectionMatrixIn * (viewMatrixIn * worldPosition);
 }
