@@ -3,7 +3,7 @@ package game
 import (
 	"github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/game/graphics"
-	"github.com/mokiat/lacking/game/graphics/shading"
+	"github.com/mokiat/lacking/game/graphics/lsl"
 	renderapi "github.com/mokiat/lacking/render"
 )
 
@@ -13,23 +13,23 @@ func NewShaderBuilder() graphics.ShaderBuilder {
 
 type shaderBuilder struct{}
 
-func (b *shaderBuilder) BuildGeometryCode(constraints graphics.GeometryConstraints, vertex shading.GenericBuilderFunc, fragment shading.GenericBuilderFunc) renderapi.ProgramCode {
+func (b *shaderBuilder) BuildGeometryCode(constraints graphics.GeometryConstraints, shader *lsl.Shader) renderapi.ProgramCode {
 	panic("TODO")
 }
 
-func (b *shaderBuilder) BuildShadowCode(constraints graphics.ShadowConstraints, vertex shading.GenericBuilderFunc, fragment shading.GenericBuilderFunc) renderapi.ProgramCode {
+func (b *shaderBuilder) BuildShadowCode(constraints graphics.ShadowConstraints, shader *lsl.Shader) renderapi.ProgramCode {
 	panic("TODO")
 }
 
-func (b *shaderBuilder) BuildForwardCode(constraints graphics.ForwardConstraints, vertex shading.GenericBuilderFunc, fragment shading.GenericBuilderFunc) renderapi.ProgramCode {
+func (b *shaderBuilder) BuildForwardCode(constraints graphics.ForwardConstraints, shader *lsl.Shader) renderapi.ProgramCode {
 	// TODO: Verify matching varyings between vertex and fragment
 	return render.ProgramCode{
-		VertexCode:   b.buildForwardVertexCode(constraints, vertex),
-		FragmentCode: b.buildForwardFragmentCode(constraints, fragment),
+		VertexCode:   b.buildForwardVertexCode(constraints, shader),
+		FragmentCode: b.buildForwardFragmentCode(constraints, shader),
 	}
 }
 
-func (b *shaderBuilder) buildForwardVertexCode(constraints graphics.ForwardConstraints, _ shading.GenericBuilderFunc) string {
+func (b *shaderBuilder) buildForwardVertexCode(constraints graphics.ForwardConstraints, _ *lsl.Shader) string {
 	var vertexSettings struct {
 		UseArmature bool
 	}
@@ -45,7 +45,7 @@ func (b *shaderBuilder) buildForwardVertexCode(constraints graphics.ForwardConst
 	return construct("custom_forward.vert.glsl", vertexSettings)
 }
 
-func (b *shaderBuilder) buildForwardFragmentCode(_ graphics.ForwardConstraints, builderFunc shading.GenericBuilderFunc) string {
+func (b *shaderBuilder) buildForwardFragmentCode(_ graphics.ForwardConstraints, shader *lsl.Shader) string {
 	var fragmentSettings struct {
 		UniformLines []string
 		VaryingLines []string
@@ -55,8 +55,7 @@ func (b *shaderBuilder) buildForwardFragmentCode(_ graphics.ForwardConstraints, 
 	}
 
 	translator := newTranslator()
-	lines := translator.Translate(builderFunc)
-
+	lines := translator.Translate(shader, "#fragment")
 	fragmentSettings.UniformLines = lines.UniformLines
 	fragmentSettings.VaryingLines = lines.VaryingLines
 	fragmentSettings.CodeLines = lines.CodeLines

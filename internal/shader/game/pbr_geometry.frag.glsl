@@ -2,6 +2,7 @@
 
 layout(location = 0) out vec4 fbColor0Out;
 layout(location = 1) out vec4 fbColor1Out;
+layout(location = 2) out vec4 fbColor2Out;
 
 /*if .UseAlbedoTexture*/
 uniform sampler2D lackingTexture0;
@@ -35,4 +36,5 @@ void main()
 
 	fbColor0Out = vec4(color.xyz, metallicIn);
 	fbColor1Out = vec4(normalize(normalInOut), roughnessIn);
+	fbColor2Out = emissiveColorIn;
 }

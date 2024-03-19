@@ -18,14 +18,17 @@ func NewShaderCollection() graphics.ShaderCollection {
 	return graphics.ShaderCollection{
 		ShadowMappingSet:    newShadowMappingSet,
 		PBRGeometrySet:      newPBRGeometrySet,
-		DirectionalLightSet: newDirectionalLightShaderSet,
+		EmissiveLightSet:    newEmissiveLightShaderSet,
 		AmbientLightSet:     newAmbientLightShaderSet,
 		PointLightSet:       newPointLightShaderSet,
 		SpotLightSet:        newSpotLightShaderSet,
+		DirectionalLightSet: newDirectionalLightShaderSet,
 		SkyboxSet:           newSkyboxShaderSet,
 		SkycolorSet:         newSkycolorShaderSet,
 		DebugSet:            newDebugShaderSet,
 		ExposureSet:         newExposureShaderSet,
+		BloomDownsampleSet:  newBloomDownsampleShaderSet,
+		BloomBlurSet:        newBloomBlurShaderSet,
 		PostprocessingSet:   newPostprocessingShaderSet,
 	}
 }
@@ -47,6 +50,7 @@ func newPBRGeometrySet(cfg graphics.PBRGeometryShaderConfig) renderapi.ProgramCo
 	var settings struct {
 		UseArmature       bool
 		UseAlphaTest      bool
+		UseNormals        bool
 		UseVertexColoring bool
 		UseTexturing      bool
 		UseAlbedoTexture  bool
@@ -56,6 +60,9 @@ func newPBRGeometrySet(cfg graphics.PBRGeometryShaderConfig) renderapi.ProgramCo
 	}
 	if cfg.HasAlphaTesting {
 		settings.UseAlphaTest = true
+	}
+	if cfg.HasNormals {
+		settings.UseNormals = true
 	}
 	if cfg.HasVertexColors {
 		settings.UseVertexColoring = true
@@ -67,6 +74,13 @@ func newPBRGeometrySet(cfg graphics.PBRGeometryShaderConfig) renderapi.ProgramCo
 	return render.ProgramCode{
 		VertexCode:   construct("pbr_geometry.vert.glsl", settings),
 		FragmentCode: construct("pbr_geometry.frag.glsl", settings),
+	}
+}
+
+func newEmissiveLightShaderSet() renderapi.ProgramCode {
+	return render.ProgramCode{
+		VertexCode:   construct("emissive_light.vert.glsl", struct{}{}),
+		FragmentCode: construct("emissive_light.frag.glsl", struct{}{}),
 	}
 }
 
@@ -130,10 +144,25 @@ func newExposureShaderSet() renderapi.ProgramCode {
 	}
 }
 
+func newBloomDownsampleShaderSet() renderapi.ProgramCode {
+	return render.ProgramCode{
+		VertexCode:   construct("bloom_downsample.vert.glsl", struct{}{}),
+		FragmentCode: construct("bloom_downsample.frag.glsl", struct{}{}),
+	}
+}
+
+func newBloomBlurShaderSet() renderapi.ProgramCode {
+	return render.ProgramCode{
+		VertexCode:   construct("bloom_blur.vert.glsl", struct{}{}),
+		FragmentCode: construct("bloom_blur.frag.glsl", struct{}{}),
+	}
+}
+
 func newPostprocessingShaderSet(cfg graphics.PostprocessingShaderConfig) renderapi.ProgramCode {
 	var settings struct {
 		UseReinhard    bool
 		UseExponential bool
+		UseBloom       bool
 	}
 	switch cfg.ToneMapping {
 	case graphics.ReinhardToneMapping:
@@ -143,6 +172,7 @@ func newPostprocessingShaderSet(cfg graphics.PostprocessingShaderConfig) rendera
 	default:
 		panic(fmt.Errorf("unknown tone mapping mode: %s", cfg.ToneMapping))
 	}
+	settings.UseBloom = cfg.Bloom
 	return render.ProgramCode{
 		VertexCode:   construct("postprocess.vert.glsl", settings),
 		FragmentCode: construct("postprocess.frag.glsl", settings),

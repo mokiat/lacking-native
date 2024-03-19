@@ -1,7 +1,9 @@
 /*template "version.glsl"*/
 
 layout(location = 0) in vec4 coordIn;
+/*if .UseNormals*/
 layout(location = 1) in vec3 normalIn;
+/*end*/
 /*if .UseTexturing*/
 layout(location = 3) in vec2 texCoordIn;
 /*end*/
@@ -31,6 +33,12 @@ smooth out vec4 colorInOut;
 
 void main()
 {
+	/*if .UseNormals*/
+	vec3 normal = normalIn;
+	/*else*/
+	vec3 normal = vec3(0.0, 1.0, 0.0);
+	/*end*/
+
 	/*if .UseTexturing*/
 	texCoordInOut = texCoordIn;
 	/*end*/
@@ -48,14 +56,14 @@ void main()
 		boneMatrixC * (coordIn * weightsIn.z) +
 		boneMatrixD * (coordIn * weightsIn.w);
 	vec3 worldNormal =
-		inverse(transpose(mat3(boneMatrixA))) * (normalIn * weightsIn.x) +
-		inverse(transpose(mat3(boneMatrixB))) * (normalIn * weightsIn.y) +
-		inverse(transpose(mat3(boneMatrixC))) * (normalIn * weightsIn.z) +
-		inverse(transpose(mat3(boneMatrixD))) * (normalIn * weightsIn.w);
+		inverse(transpose(mat3(boneMatrixA))) * (normal * weightsIn.x) +
+		inverse(transpose(mat3(boneMatrixB))) * (normal * weightsIn.y) +
+		inverse(transpose(mat3(boneMatrixC))) * (normal * weightsIn.z) +
+		inverse(transpose(mat3(boneMatrixD))) * (normal * weightsIn.w);
 	/*else*/
 	mat4 modelMatrix = modelMatrixIn[gl_InstanceID];
 	vec4 worldPosition = modelMatrix * coordIn;
-	vec3 worldNormal = inverse(transpose(mat3(modelMatrix))) * normalIn;
+	vec3 worldNormal = inverse(transpose(mat3(modelMatrix))) * normal;
 	/*end*/
 	// NOTE: For custom shaders: To get the model position of the vertex
 	// just multiply the coordIn by the inverse modelMatrixIn. Don't change
