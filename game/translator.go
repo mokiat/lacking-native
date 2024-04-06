@@ -16,6 +16,7 @@ type translator struct {
 	nameMapping map[string]string
 	nameIndex   uint32
 
+	textureLines []string
 	uniformLines []string
 	varyingLines []string
 	codeLines    []string
@@ -24,6 +25,8 @@ type translator struct {
 func (t *translator) Translate(shader *lsl.Shader, funcName string) translatorOutput {
 	for _, declaration := range shader.Declarations {
 		switch decl := declaration.(type) {
+		case *lsl.TextureBlockDeclaration:
+			t.translateTextureBlock(decl)
 		case *lsl.UniformBlockDeclaration:
 			t.translateUniformBlock(decl)
 		case *lsl.FunctionDeclaration:
@@ -33,9 +36,26 @@ func (t *translator) Translate(shader *lsl.Shader, funcName string) translatorOu
 		}
 	}
 	return translatorOutput{
+		TextureLines: t.textureLines,
 		UniformLines: t.uniformLines,
 		VaryingLines: t.varyingLines,
 		CodeLines:    t.codeLines,
+	}
+}
+
+func (t *translator) translateTextureBlock(decl *lsl.TextureBlockDeclaration) {
+	for _, field := range decl.Fields {
+		name := t.translateFieldName(field.Name)
+		var textureLine string
+		switch field.Type {
+		case lsl.TypeNameSampler2D:
+			textureLine = fmt.Sprintf("uniform sampler2D %s;", name)
+		case lsl.TypeNameSamplerCube:
+			textureLine = fmt.Sprintf("uniform samplerCube %s;", name)
+		default:
+			panic(fmt.Errorf("unknown texture field type: %s", field.Type))
+		}
+		t.textureLines = append(t.textureLines, textureLine)
 	}
 }
 
@@ -77,30 +97,68 @@ func (t *translator) translateAssignment(assignment *lsl.Assignment) {
 	t.codeLines = append(t.codeLines, fmt.Sprintf("%s = %s;", target, expression))
 }
 
-func (t *translator) translateTarget(target string) string {
-	if target == "#color" {
-		return "fbColor0Out"
+func (t *translator) translateTarget(target lsl.Expression) string {
+	switch target := target.(type) {
+	case *lsl.Identifier:
+		if target.Name == "#color" {
+			return "fbColor0Out"
+		}
+		if mappedName, ok := t.nameMapping[target.Name]; ok {
+			return mappedName
+		}
+		panic(fmt.Errorf("unknown target: %s", target))
+
+	case *lsl.FieldIdentifier:
+		panic("field identifiers are not supported")
+
+	default:
+		panic(fmt.Errorf("unknown target type: %T", target))
 	}
-	if mappedName, ok := t.nameMapping[target]; ok {
-		return mappedName
-	}
-	panic(fmt.Errorf("unknown target: %s", target))
 }
 
 func (t *translator) translateExpression(expression lsl.Expression) string {
 	switch expr := expression.(type) {
 	case *lsl.Identifier:
 		return t.translateIdentifier(expr)
+	case *lsl.FunctionCall:
+		return t.translateFunctionCall(expr)
 	default:
 		panic(fmt.Errorf("unknown expression type: %T", expression))
 	}
 }
 
 func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
+	if identifier.Name == "#direction" {
+		return "texCoordInOut"
+	}
 	if mappedName, ok := t.nameMapping[identifier.Name]; ok {
 		return mappedName
 	}
 	panic(fmt.Errorf("unknown identifier: %s", identifier.Name))
+}
+
+func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
+	switch call.Name {
+	case "sample":
+		return t.translateTextureCall(call)
+	default:
+		panic(fmt.Errorf("unknown function call: %s", call.Name))
+	}
+}
+
+func (t *translator) translateTextureCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameSamplerCube, lsl.TypeNameVec3):
+		return fmt.Sprintf("texture(%s, %s)",
+			t.translateExpression(call.Arguments[0]),
+			t.translateExpression(call.Arguments[1]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
 }
 
 func (t *translator) translateFieldName(name string) string {
@@ -119,6 +177,7 @@ func (t *translator) nextName() string {
 }
 
 type translatorOutput struct {
+	TextureLines []string
 	UniformLines []string
 	VaryingLines []string
 	CodeLines    []string

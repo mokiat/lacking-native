@@ -12,6 +12,8 @@ uniform sampler2D fbColor2TextureIn;
 
 void main()
 {
+	// TODO: Emissive intensity should depend on the distance to camera,
+	// according to inverse square law.
 	vec2 screenCoord = getScreenUVCoords(viewportIn);
 	vec4 emissiveColor = texture(fbColor2TextureIn, screenCoord);
 	fbColor0Out = vec4(emissiveColor.xyz, 1.0);
