@@ -9,12 +9,12 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_2D, id)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, glWrap(info.Wrapping))
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, glWrap(info.Wrapping))
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, glFilter(info.Filtering, info.Mipmapping))
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, glFilter(info.Filtering, false)) // no mipmaps when magnification
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	levels := glMipmapLevels(info.Width, info.Height, info.Mipmapping)
+	levels := glMipmapLevels(info.Width, info.Height, info.GenerateMipmaps)
 	internalFormat := glInternalFormat(info.Format, info.GammaCorrection)
 	gl.TexStorage2D(gl.TEXTURE_2D, levels, internalFormat, int32(info.Width), int32(info.Height))
 
@@ -22,8 +22,7 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 		dataFormat := glDataFormat(info.Format)
 		componentType := glDataComponentType(info.Format)
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(info.Width), int32(info.Height), dataFormat, componentType, gl.Ptr(info.Data))
-
-		if info.Mipmapping {
+		if info.GenerateMipmaps {
 			gl.GenerateMipmap(gl.TEXTURE_2D)
 		}
 	}
@@ -42,14 +41,8 @@ func NewDepthTexture2D(info render.DepthTexture2DInfo) *Texture {
 	gl.BindTexture(gl.TEXTURE_2D, id)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-
-	if info.ClippedValue.Specified {
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	} else {
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	}
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	if info.Comparable {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE)
 		gl.TexStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT32F, int32(info.Width), int32(info.Height))
@@ -107,10 +100,10 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 	gl.BindTexture(gl.TEXTURE_CUBE_MAP, id)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, glFilter(info.Filtering, info.Mipmapping))
-	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, glFilter(info.Filtering, false)) // no mipmaps when magnification
+	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	levels := glMipmapLevels(info.Dimension, info.Dimension, info.Mipmapping)
+	levels := glMipmapLevels(info.Dimension, info.Dimension, info.GenerateMipmaps)
 	internalFormat := glInternalFormat(info.Format, info.GammaCorrection)
 	gl.TexStorage2D(gl.TEXTURE_CUBE_MAP, levels, internalFormat, int32(info.Dimension), int32(info.Dimension))
 
@@ -219,7 +212,7 @@ func glFilter(filter render.FilterMode, mipmaps bool) int32 {
 	}
 }
 
-func glMipmapLevels(width, height int, mipmapping bool) int32 {
+func glMipmapLevels(width, height uint32, mipmapping bool) int32 {
 	if !mipmapping {
 		return 1
 	}

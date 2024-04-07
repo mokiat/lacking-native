@@ -17,7 +17,7 @@ func NewPixelTransferBuffer(info render.BufferInfo) render.Buffer {
 	var id uint32
 	gl.GenBuffers(1, &id)
 	gl.BindBuffer(gl.PIXEL_PACK_BUFFER, id)
-	gl.BufferData(gl.PIXEL_PACK_BUFFER, info.Size, nil, gl.DYNAMIC_READ)
+	gl.BufferData(gl.PIXEL_PACK_BUFFER, int(info.Size), nil, gl.DYNAMIC_READ)
 
 	result := &Buffer{
 		id:   id,
@@ -39,7 +39,7 @@ func newBuffer(info render.BufferInfo, kind uint32) *Buffer {
 	if info.Data != nil {
 		gl.BufferData(kind, len(info.Data), gl.Ptr(&info.Data[0]), glBufferUsage(info.Dynamic))
 	} else {
-		gl.BufferData(kind, info.Size, nil, glBufferUsage(info.Dynamic))
+		gl.BufferData(kind, int(info.Size), nil, glBufferUsage(info.Dynamic))
 	}
 	result := &Buffer{
 		id:   id,

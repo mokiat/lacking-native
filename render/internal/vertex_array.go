@@ -20,9 +20,9 @@ func NewVertexArray(info render.VertexArrayInfo) *VertexArray {
 		gl.EnableVertexAttribArray(uint32(attribute.Location))
 		count, compType, normalized, integer := glAttribParams(attribute.Format)
 		if integer {
-			gl.VertexAttribIPointer(uint32(attribute.Location), count, compType, int32(binding.Stride), gl.PtrOffset(attribute.Offset))
+			gl.VertexAttribIPointer(uint32(attribute.Location), count, compType, int32(binding.Stride), gl.PtrOffset(int(attribute.Offset)))
 		} else {
-			gl.VertexAttribPointer(uint32(attribute.Location), count, compType, normalized, int32(binding.Stride), gl.PtrOffset(attribute.Offset))
+			gl.VertexAttribPointer(uint32(attribute.Location), count, compType, normalized, int32(binding.Stride), gl.PtrOffset(int(attribute.Offset)))
 		}
 	}
 	if indexBuffer, ok := info.IndexBuffer.(*Buffer); ok {
@@ -155,9 +155,9 @@ func glAttribParams(format render.VertexAttributeFormat) (int32, uint32, bool, b
 
 func glIndexFormat(format render.IndexFormat) uint32 {
 	switch format {
-	case render.IndexFormatUnsignedShort:
+	case render.IndexFormatUnsignedU16:
 		return gl.UNSIGNED_SHORT
-	case render.IndexFormatUnsignedInt:
+	case render.IndexFormatUnsignedU32:
 		return gl.UNSIGNED_INT
 	default:
 		panic(fmt.Errorf("unknown index format: %d", format))

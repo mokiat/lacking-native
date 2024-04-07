@@ -208,7 +208,7 @@ type CommandDraw struct {
 }
 
 type CommandDrawIndexed struct {
-	IndexOffset   int32
-	IndexCount    int32
-	InstanceCount int32
+	IndexByteOffset int32
+	IndexCount      int32
+	InstanceCount   int32
 }
