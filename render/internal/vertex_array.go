@@ -20,9 +20,9 @@ func NewVertexArray(info render.VertexArrayInfo) *VertexArray {
 		gl.EnableVertexAttribArray(uint32(attribute.Location))
 		count, compType, normalized, integer := glAttribParams(attribute.Format)
 		if integer {
-			gl.VertexAttribIPointer(uint32(attribute.Location), count, compType, int32(binding.Stride), gl.PtrOffset(int(attribute.Offset)))
+			gl.VertexAttribIPointerWithOffset(uint32(attribute.Location), count, compType, int32(binding.Stride), uintptr(attribute.Offset))
 		} else {
-			gl.VertexAttribPointer(uint32(attribute.Location), count, compType, normalized, int32(binding.Stride), gl.PtrOffset(int(attribute.Offset)))
+			gl.VertexAttribPointerWithOffset(uint32(attribute.Location), count, compType, normalized, int32(binding.Stride), uintptr(attribute.Offset))
 		}
 	}
 	if indexBuffer, ok := info.IndexBuffer.(*Buffer); ok {
