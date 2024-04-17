@@ -2,7 +2,6 @@
 
 layout(location = 0) out vec4 fbColor0Out; // color + metallic
 layout(location = 1) out vec4 fbColor1Out; // normal + roughness
-layout(location = 2) out vec4 fbColor2Out; // emissive
 
 /*range $line := .TextureLines */
 /* $line */
@@ -35,5 +34,4 @@ void main()
 
 	fbColor0Out = vec4(color, metallic);
 	fbColor1Out = vec4(normal, roughness);
-	fbColor2Out = vec4(0.0, 0.0, 0.0, 0.0);
 }

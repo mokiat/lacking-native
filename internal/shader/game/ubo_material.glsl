@@ -5,5 +5,4 @@ layout (std140) uniform Material
 	float normalScaleIn;
 	float metallicIn;
 	float roughnessIn;
-	vec4 emissiveColorIn;
 };

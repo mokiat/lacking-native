@@ -16,7 +16,6 @@ var construct = shader.Load(
 
 func NewShaderCollection() graphics.ShaderCollection {
 	return graphics.ShaderCollection{
-		EmissiveLightSet:    newEmissiveLightShaderSet,
 		AmbientLightSet:     newAmbientLightShaderSet,
 		PointLightSet:       newPointLightShaderSet,
 		SpotLightSet:        newSpotLightShaderSet,
@@ -74,13 +73,6 @@ func NewShaderCollection() graphics.ShaderCollection {
 // 		FragmentCode: construct("pbr_geometry.frag.glsl", settings),
 // 	}
 // }
-
-func newEmissiveLightShaderSet() renderapi.ProgramCode {
-	return render.ProgramCode{
-		VertexCode:   construct("emissive_light.vert.glsl", struct{}{}),
-		FragmentCode: construct("emissive_light.frag.glsl", struct{}{}),
-	}
-}
 
 func newAmbientLightShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
