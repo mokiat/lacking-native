@@ -16,8 +16,6 @@ var construct = shader.Load(
 
 func NewShaderCollection() graphics.ShaderCollection {
 	return graphics.ShaderCollection{
-		ShadowMappingSet:    newShadowMappingSet,
-		PBRGeometrySet:      newPBRGeometrySet,
 		EmissiveLightSet:    newEmissiveLightShaderSet,
 		AmbientLightSet:     newAmbientLightShaderSet,
 		PointLightSet:       newPointLightShaderSet,
@@ -33,49 +31,49 @@ func NewShaderCollection() graphics.ShaderCollection {
 	}
 }
 
-func newShadowMappingSet(cfg graphics.ShadowMappingShaderConfig) renderapi.ProgramCode {
-	var settings struct {
-		UseArmature bool
-	}
-	if cfg.HasArmature {
-		settings.UseArmature = true
-	}
-	return render.ProgramCode{
-		VertexCode:   construct("shadow.vert.glsl", settings),
-		FragmentCode: construct("shadow.frag.glsl", settings),
-	}
-}
+// func newShadowMappingSet(cfg graphics.ShadowMappingShaderConfig) renderapi.ProgramCode {
+// 	var settings struct {
+// 		UseArmature bool
+// 	}
+// 	if cfg.HasArmature {
+// 		settings.UseArmature = true
+// 	}
+// 	return render.ProgramCode{
+// 		VertexCode:   construct("shadow.vert.glsl", settings),
+// 		FragmentCode: construct("shadow.frag.glsl", settings),
+// 	}
+// }
 
-func newPBRGeometrySet(cfg graphics.PBRGeometryShaderConfig) renderapi.ProgramCode {
-	var settings struct {
-		UseArmature       bool
-		UseAlphaTest      bool
-		UseNormals        bool
-		UseVertexColoring bool
-		UseTexturing      bool
-		UseAlbedoTexture  bool
-	}
-	if cfg.HasArmature {
-		settings.UseArmature = true
-	}
-	if cfg.HasAlphaTesting {
-		settings.UseAlphaTest = true
-	}
-	if cfg.HasNormals {
-		settings.UseNormals = true
-	}
-	if cfg.HasVertexColors {
-		settings.UseVertexColoring = true
-	}
-	if cfg.HasAlbedoTexture {
-		settings.UseTexturing = true
-		settings.UseAlbedoTexture = true
-	}
-	return render.ProgramCode{
-		VertexCode:   construct("pbr_geometry.vert.glsl", settings),
-		FragmentCode: construct("pbr_geometry.frag.glsl", settings),
-	}
-}
+// func newPBRGeometrySet(cfg graphics.PBRGeometryShaderConfig) renderapi.ProgramCode {
+// 	var settings struct {
+// 		UseArmature       bool
+// 		UseAlphaTest      bool
+// 		UseNormals        bool
+// 		UseVertexColoring bool
+// 		UseTexturing      bool
+// 		UseAlbedoTexture  bool
+// 	}
+// 	if cfg.HasArmature {
+// 		settings.UseArmature = true
+// 	}
+// 	if cfg.HasAlphaTesting {
+// 		settings.UseAlphaTest = true
+// 	}
+// 	if cfg.HasNormals {
+// 		settings.UseNormals = true
+// 	}
+// 	if cfg.HasVertexColors {
+// 		settings.UseVertexColoring = true
+// 	}
+// 	if cfg.HasAlbedoTexture {
+// 		settings.UseTexturing = true
+// 		settings.UseAlbedoTexture = true
+// 	}
+// 	return render.ProgramCode{
+// 		VertexCode:   construct("pbr_geometry.vert.glsl", settings),
+// 		FragmentCode: construct("pbr_geometry.frag.glsl", settings),
+// 	}
+// }
 
 func newEmissiveLightShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{

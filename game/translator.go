@@ -64,6 +64,12 @@ func (t *translator) translateUniformBlock(decl *lsl.UniformBlockDeclaration) {
 		name := t.translateFieldName(field.Name)
 		var uniformLine string
 		switch field.Type {
+		case lsl.TypeNameFloat:
+			uniformLine = fmt.Sprintf("float %s;", name)
+		case lsl.TypeNameVec2:
+			uniformLine = fmt.Sprintf("vec2 %s;", name)
+		case lsl.TypeNameVec3:
+			uniformLine = fmt.Sprintf("vec3 %s;", name)
 		case lsl.TypeNameVec4:
 			uniformLine = fmt.Sprintf("vec4 %s;", name)
 		default:
@@ -101,12 +107,18 @@ func (t *translator) translateTarget(target lsl.Expression) string {
 	switch target := target.(type) {
 	case *lsl.Identifier:
 		if target.Name == "#color" {
-			return "fbColor0Out"
+			return "color"
+		}
+		if target.Name == "#metallic" {
+			return "metallic"
+		}
+		if target.Name == "#roughness" {
+			return "roughness"
 		}
 		if mappedName, ok := t.nameMapping[target.Name]; ok {
 			return mappedName
 		}
-		panic(fmt.Errorf("unknown target: %s", target))
+		panic(fmt.Errorf("unknown target: %s", target.Name))
 
 	case *lsl.FieldIdentifier:
 		panic("field identifiers are not supported")
@@ -131,6 +143,9 @@ func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 	if identifier.Name == "#direction" {
 		return "texCoordInOut"
 	}
+	if identifier.Name == "#uv" {
+		return "texCoordInOut"
+	}
 	if mappedName, ok := t.nameMapping[identifier.Name]; ok {
 		return mappedName
 	}
@@ -141,6 +156,8 @@ func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
 	switch call.Name {
 	case "sample":
 		return t.translateTextureCall(call)
+	case "rgb":
+		return t.translateRGBCall(call)
 	default:
 		panic(fmt.Errorf("unknown function call: %s", call.Name))
 	}
@@ -155,6 +172,20 @@ func (t *translator) translateTextureCall(call *lsl.FunctionCall) string {
 		return fmt.Sprintf("texture(%s, %s)",
 			t.translateExpression(call.Arguments[0]),
 			t.translateExpression(call.Arguments[1]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateRGBCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameSamplerCube, lsl.TypeNameVec3):
+		return fmt.Sprintf("(%s).xyz",
+			t.translateExpression(call.Arguments[0]),
 		)
 	default:
 		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
