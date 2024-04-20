@@ -77,9 +77,8 @@ func (f *Framebuffer) Release() {
 func DetermineContentFormat(framebuffer render.Framebuffer) render.DataFormat {
 	fb := framebuffer.(*Framebuffer)
 	gl.BindFramebuffer(gl.FRAMEBUFFER, fb.id)
-	defer func() {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-	}()
+	defer gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+
 	var glFormat int32
 	gl.GetIntegerv(
 		gl.IMPLEMENTATION_COLOR_READ_FORMAT,

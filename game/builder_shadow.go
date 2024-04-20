@@ -26,7 +26,7 @@ func (b *shaderBuilder) buildShadowVertexCode(constraints graphics.ShadowConstra
 	return construct("shadow.vert.glsl", settings)
 }
 
-func (b *shaderBuilder) buildShadowFragmentCode(constraints graphics.ShadowConstraints, shader *lsl.Shader) string {
+func (b *shaderBuilder) buildShadowFragmentCode(constraints graphics.ShadowConstraints, _ *lsl.Shader) string {
 	// FIXME: Use actual shader
 	var settings struct {
 		UseArmature bool

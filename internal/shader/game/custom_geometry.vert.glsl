@@ -1,19 +1,19 @@
 /*template "version.glsl"*/
 
 layout(location = 0) in vec4 coordIn;
-/*if .UseNormals*/
+/* if .UseNormals */
 layout(location = 1) in vec3 normalIn;
-/*end*/
-/*if .UseTexCoords*/
+/* end */
+/* if .UseTexCoords */
 layout(location = 3) in vec2 texCoordIn;
-/*end*/
-/*if .UseVertexColoring*/
+/* end */
+/* if .UseVertexColoring */
 layout(location = 4) in vec4 colorIn;
-/*end*/
-/*if .UseArmature*/
+/* end */
+/* if .UseArmature */
 layout(location = 5) in vec4 weightsIn;
 layout(location = 6) in uvec4 jointsIn;
-/*end*/
+/* end */
 
 /*template "ubo_camera.glsl"*/
 

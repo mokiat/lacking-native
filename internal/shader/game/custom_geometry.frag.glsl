@@ -24,14 +24,15 @@ smooth in vec4 colorInOut;
 
 void main()
 {
-	vec3 color = vec3(1.0, 1.0, 1.0);
+	vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
 	float metallic = 0.0;
 	vec3 normal = normalize(normalInOut);
 	float roughness = 0.0;
+
 	/*range $line := .CodeLines */
 	/* $line */
 	/*end*/
 
-	fbColor0Out = vec4(color, metallic);
+	fbColor0Out = vec4(color.xyz, metallic);
 	fbColor1Out = vec4(normal, roughness);
 }

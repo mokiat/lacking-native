@@ -141,7 +141,7 @@ func (t *translator) translateExpression(expression lsl.Expression) string {
 
 func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 	if identifier.Name == "#direction" {
-		return "texCoordInOut"
+		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
 	}
 	if identifier.Name == "#uv" {
 		return "texCoordInOut"

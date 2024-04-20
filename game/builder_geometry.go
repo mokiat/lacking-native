@@ -18,6 +18,7 @@ func (b *shaderBuilder) BuildGeometryCode(constraints graphics.GeometryConstrain
 func (b *shaderBuilder) buildGeometryVertexCode(constraints graphics.GeometryConstraints, _ *lsl.Shader) string {
 	var settings struct {
 		UseArmature       bool
+		UseTangents       bool
 		UseNormals        bool
 		UseTexCoords      bool
 		UseVertexColoring bool
