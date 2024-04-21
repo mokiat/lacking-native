@@ -1,6 +1,7 @@
 package game
 
 import (
+	"github.com/mokiat/lacking-native/internal/shader/translator"
 	"github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/game/graphics"
 	"github.com/mokiat/lacking/game/graphics/lsl"
@@ -37,26 +38,24 @@ func (b *shaderBuilder) BuildCode(constraints graphics.ShaderConstraints, shader
 }
 
 func (b *shaderBuilder) buildVertexCode(shader *lsl.Shader, settings shaderSettings) string {
-	translator := newTranslator()
-	translation := translator.Translate(shader, "#vertex")
+	translation := translator.Translate(shader, translator.ShaderStageVertex)
 	return construct("custom.vert.glsl", struct {
 		shaderSettings
-		translatorOutput
+		translator.Output
 	}{
-		shaderSettings:   settings,
-		translatorOutput: translation,
+		shaderSettings: settings,
+		Output:         translation,
 	})
 }
 
 func (b *shaderBuilder) buildFragmentCode(shader *lsl.Shader, settings shaderSettings) string {
-	translator := newTranslator()
-	translation := translator.Translate(shader, "#fragment")
+	translation := translator.Translate(shader, translator.ShaderStageFragment)
 	return construct("custom.frag.glsl", struct {
 		shaderSettings
-		translatorOutput
+		translator.Output
 	}{
-		shaderSettings:   settings,
-		translatorOutput: translation,
+		shaderSettings: settings,
+		Output:         translation,
 	})
 }
 

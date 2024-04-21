@@ -1,6 +1,7 @@
 package game
 
 import (
+	"github.com/mokiat/lacking-native/internal/shader/translator"
 	"github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/game/graphics"
 	"github.com/mokiat/lacking/game/graphics/lsl"
@@ -40,8 +41,7 @@ func (b *shaderBuilder) buildForwardFragmentCode(_ graphics.ForwardConstraints, 
 		// on the constraints.
 	}
 
-	translator := newTranslator()
-	lines := translator.Translate(shader, "#fragment")
+	lines := translator.Translate(shader, translator.ShaderStageFragment)
 	fragmentSettings.UniformLines = lines.UniformLines
 	fragmentSettings.VaryingLines = lines.VaryingLines
 	fragmentSettings.CodeLines = lines.CodeLines

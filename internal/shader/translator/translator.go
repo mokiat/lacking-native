@@ -1,4 +1,4 @@
-package game
+package translator
 
 import (
 	"fmt"
@@ -6,13 +6,27 @@ import (
 	"github.com/mokiat/lacking/game/graphics/lsl"
 )
 
-func newTranslator() *translator {
+type ShaderStage string
+
+const (
+	ShaderStageVertex   ShaderStage = "vertex"
+	ShaderStageFragment ShaderStage = "fragment"
+)
+
+func Translate(shader *lsl.Shader, stage ShaderStage) Output {
+	return newTranslator(stage).Translate(shader)
+}
+
+func newTranslator(stage ShaderStage) *translator {
 	return &translator{
+		stage:       stage,
 		nameMapping: make(map[string]string),
 	}
 }
 
 type translator struct {
+	stage ShaderStage
+
 	nameMapping map[string]string
 	nameIndex   uint32
 
@@ -22,20 +36,22 @@ type translator struct {
 	codeLines    []string
 }
 
-func (t *translator) Translate(shader *lsl.Shader, funcName string) translatorOutput {
+func (t *translator) Translate(shader *lsl.Shader) Output {
 	for _, declaration := range shader.Declarations {
 		switch decl := declaration.(type) {
 		case *lsl.TextureBlockDeclaration:
 			t.translateTextureBlock(decl)
 		case *lsl.UniformBlockDeclaration:
 			t.translateUniformBlock(decl)
+		case *lsl.VaryingBlockDeclaration:
+			t.translateVaryingBlock(decl)
 		case *lsl.FunctionDeclaration:
-			t.translateFunction(decl, funcName)
+			t.translateFunction(decl)
 		default:
 			panic(fmt.Errorf("unknown declaration type: %T", declaration))
 		}
 	}
-	return translatorOutput{
+	return Output{
 		TextureLines: t.textureLines,
 		UniformLines: t.uniformLines,
 		VaryingLines: t.varyingLines,
@@ -45,7 +61,7 @@ func (t *translator) Translate(shader *lsl.Shader, funcName string) translatorOu
 
 func (t *translator) translateTextureBlock(decl *lsl.TextureBlockDeclaration) {
 	for _, field := range decl.Fields {
-		name := t.translateFieldName(field.Name)
+		name := t.translateName(field.Name)
 		var textureLine string
 		switch field.Type {
 		case lsl.TypeNameSampler2D:
@@ -61,7 +77,7 @@ func (t *translator) translateTextureBlock(decl *lsl.TextureBlockDeclaration) {
 
 func (t *translator) translateUniformBlock(decl *lsl.UniformBlockDeclaration) {
 	for _, field := range decl.Fields {
-		name := t.translateFieldName(field.Name)
+		name := t.translateName(field.Name)
 		var uniformLine string
 		switch field.Type {
 		case lsl.TypeNameFloat:
@@ -79,12 +95,38 @@ func (t *translator) translateUniformBlock(decl *lsl.UniformBlockDeclaration) {
 	}
 }
 
-func (t *translator) translateFunction(decl *lsl.FunctionDeclaration, funcName string) {
-	if decl.Name != funcName {
-		return
+func (t *translator) translateVaryingBlock(decl *lsl.VaryingBlockDeclaration) {
+	for _, field := range decl.Fields {
+		name := t.translateName(field.Name)
+		var varyingLine string
+		switch field.Type {
+		case lsl.TypeNameFloat:
+			varyingLine = fmt.Sprintf("float %s;", name)
+		case lsl.TypeNameVec2:
+			varyingLine = fmt.Sprintf("vec2 %s;", name)
+		case lsl.TypeNameVec3:
+			varyingLine = fmt.Sprintf("vec3 %s;", name)
+		case lsl.TypeNameVec4:
+			varyingLine = fmt.Sprintf("vec4 %s;", name)
+		default:
+			panic(fmt.Errorf("unknown uniform type: %s", field.Type))
+		}
+		t.varyingLines = append(t.varyingLines, varyingLine)
 	}
-	for _, statement := range decl.Body {
-		t.translateStatement(statement)
+}
+
+func (t *translator) translateFunction(decl *lsl.FunctionDeclaration) {
+	var specialFunctionName string
+	switch t.stage {
+	case ShaderStageVertex:
+		specialFunctionName = "#vertex"
+	case ShaderStageFragment:
+		specialFunctionName = "#fragment"
+	}
+	if decl.Name == specialFunctionName {
+		for _, statement := range decl.Body {
+			t.translateStatement(statement)
+		}
 	}
 }
 
@@ -192,7 +234,7 @@ func (t *translator) translateRGBCall(call *lsl.FunctionCall) string {
 	}
 }
 
-func (t *translator) translateFieldName(name string) string {
+func (t *translator) translateName(name string) string {
 	if mappedName, ok := t.nameMapping[name]; ok {
 		return mappedName
 	}
@@ -202,14 +244,7 @@ func (t *translator) translateFieldName(name string) string {
 }
 
 func (t *translator) nextName() string {
-	name := fmt.Sprintf("variable%d", t.nameIndex)
+	name := fmt.Sprintf("userIdentifier%d", t.nameIndex)
 	t.nameIndex++
 	return name
-}
-
-type translatorOutput struct {
-	TextureLines []string
-	UniformLines []string
-	VaryingLines []string
-	CodeLines    []string
 }

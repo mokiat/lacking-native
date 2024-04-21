@@ -1,6 +1,7 @@
 package game
 
 import (
+	"github.com/mokiat/lacking-native/internal/shader/translator"
 	"github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/game/graphics"
 	"github.com/mokiat/lacking/game/graphics/lsl"
@@ -34,8 +35,7 @@ func (b *shaderBuilder) buildSkyFragmentCode(_ graphics.SkyConstraints, shader *
 		CodeLines    []string
 	}
 
-	translator := newTranslator()
-	lines := translator.Translate(shader, "#fragment")
+	lines := translator.Translate(shader, translator.ShaderStageFragment)
 	fragmentSettings.TextureLines = lines.TextureLines
 	fragmentSettings.UniformLines = lines.UniformLines
 	fragmentSettings.VaryingLines = lines.VaryingLines
