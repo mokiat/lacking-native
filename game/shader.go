@@ -20,8 +20,6 @@ func NewShaderCollection() graphics.ShaderCollection {
 		PointLightSet:       newPointLightShaderSet,
 		SpotLightSet:        newSpotLightShaderSet,
 		DirectionalLightSet: newDirectionalLightShaderSet,
-		SkyboxSet:           newSkyboxShaderSet,
-		SkycolorSet:         newSkycolorShaderSet,
 		DebugSet:            newDebugShaderSet,
 		ExposureSet:         newExposureShaderSet,
 		BloomDownsampleSet:  newBloomDownsampleShaderSet,
@@ -103,20 +101,6 @@ func newDirectionalLightShaderSet() renderapi.ProgramCode {
 	return render.ProgramCode{
 		VertexCode:   construct("directional_light.vert.glsl", settings),
 		FragmentCode: construct("directional_light.frag.glsl", settings),
-	}
-}
-
-func newSkyboxShaderSet() renderapi.ProgramCode {
-	return render.ProgramCode{
-		VertexCode:   construct("skybox.vert.glsl", struct{}{}),
-		FragmentCode: construct("skybox.frag.glsl", struct{}{}),
-	}
-}
-
-func newSkycolorShaderSet() renderapi.ProgramCode {
-	return render.ProgramCode{
-		VertexCode:   construct("skycolor.vert.glsl", struct{}{}),
-		FragmentCode: construct("skycolor.frag.glsl", struct{}{}),
 	}
 }
 
