@@ -96,18 +96,25 @@ func (t *translator) translateUniformBlock(decl *lsl.UniformBlockDeclaration) {
 }
 
 func (t *translator) translateVaryingBlock(decl *lsl.VaryingBlockDeclaration) {
+	var qualifier string
+	switch t.stage {
+	case ShaderStageVertex:
+		qualifier = "out"
+	case ShaderStageFragment:
+		qualifier = "in"
+	}
 	for _, field := range decl.Fields {
 		name := t.translateName(field.Name)
 		var varyingLine string
 		switch field.Type {
 		case lsl.TypeNameFloat:
-			varyingLine = fmt.Sprintf("float %s;", name)
+			varyingLine = fmt.Sprintf("smooth %s float %s;", qualifier, name)
 		case lsl.TypeNameVec2:
-			varyingLine = fmt.Sprintf("vec2 %s;", name)
+			varyingLine = fmt.Sprintf("smooth %s vec2 %s;", qualifier, name)
 		case lsl.TypeNameVec3:
-			varyingLine = fmt.Sprintf("vec3 %s;", name)
+			varyingLine = fmt.Sprintf("smooth %s vec3 %s;", qualifier, name)
 		case lsl.TypeNameVec4:
-			varyingLine = fmt.Sprintf("vec4 %s;", name)
+			varyingLine = fmt.Sprintf("smooth %s vec4 %s;", qualifier, name)
 		default:
 			panic(fmt.Errorf("unknown uniform type: %s", field.Type))
 		}
@@ -132,66 +139,107 @@ func (t *translator) translateFunction(decl *lsl.FunctionDeclaration) {
 
 func (t *translator) translateStatement(statement lsl.Statement) {
 	switch stmt := statement.(type) {
+	case *lsl.Discard:
+		t.translateDiscard()
 	case *lsl.Assignment:
 		t.translateAssignment(stmt)
+	case *lsl.Conditional:
+		t.translateConditional(stmt)
 	default:
 		panic(fmt.Errorf("unknown statement type: %T", statement))
 	}
 }
 
+func (t *translator) translateDiscard() {
+	t.codeLines = append(t.codeLines, "discard;")
+}
+
+func (t *translator) translateConditional(conditional *lsl.Conditional) {
+	t.codeLines = append(t.codeLines, "if (")
+	t.codeLines = append(t.codeLines, t.translateExpression(conditional.Condition))
+	t.codeLines = append(t.codeLines, ") {")
+	for _, statement := range conditional.Then {
+		t.translateStatement(statement)
+	}
+	switch {
+	case conditional.ElseIf != nil:
+		t.codeLines = append(t.codeLines, "} else")
+		t.translateConditional(conditional.ElseIf) // TODO: Verify if this works, since it puts it on a new line
+	case conditional.Else != nil:
+		t.codeLines = append(t.codeLines, "} else {")
+		for _, statement := range conditional.Else {
+			t.translateStatement(statement)
+		}
+		t.codeLines = append(t.codeLines, "}")
+	default:
+		t.codeLines = append(t.codeLines, "}")
+	}
+}
+
 func (t *translator) translateAssignment(assignment *lsl.Assignment) {
-	target := t.translateTarget(assignment.Target)
+	target := t.translateExpression(assignment.Target)
 	expression := t.translateExpression(assignment.Expression)
 	t.codeLines = append(t.codeLines, fmt.Sprintf("%s = %s;", target, expression))
 }
 
-func (t *translator) translateTarget(target lsl.Expression) string {
-	switch target := target.(type) {
-	case *lsl.Identifier:
-		if target.Name == "#color" {
-			return "color"
-		}
-		if target.Name == "#metallic" {
-			return "metallic"
-		}
-		if target.Name == "#roughness" {
-			return "roughness"
-		}
-		if mappedName, ok := t.nameMapping[target.Name]; ok {
-			return mappedName
-		}
-		panic(fmt.Errorf("unknown target: %s", target.Name))
-
-	case *lsl.FieldIdentifier:
-		panic("field identifiers are not supported")
-
-	default:
-		panic(fmt.Errorf("unknown target type: %T", target))
-	}
-}
-
 func (t *translator) translateExpression(expression lsl.Expression) string {
 	switch expr := expression.(type) {
+	// TODO: Add support for bool literals
 	case *lsl.Identifier:
 		return t.translateIdentifier(expr)
+	case *lsl.FieldIdentifier:
+		return t.translateFieldIdentifier(expr)
 	case *lsl.FunctionCall:
 		return t.translateFunctionCall(expr)
+	case *lsl.BinaryExpression:
+		return t.translateBinaryExpression(expr)
+	case *lsl.FloatLiteral:
+		return t.translateFloatLiteral(expr)
 	default:
 		panic(fmt.Errorf("unknown expression type: %T", expression))
 	}
 }
 
+func (t *translator) translateBinaryExpression(expression *lsl.BinaryExpression) string {
+	left := t.translateExpression(expression.Left)
+	right := t.translateExpression(expression.Right)
+	operator := t.translateOperator(expression.Operator)
+	return fmt.Sprintf("%s %s %s", left, operator, right)
+}
+
+func (t *translator) translateOperator(operator string) string {
+	return operator
+}
+
 func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
+	if identifier.Name == "#color" {
+		return "color"
+	}
+	if identifier.Name == "#metallic" {
+		return "metallic"
+	}
+	if identifier.Name == "#roughness" {
+		return "roughness"
+	}
 	if identifier.Name == "#direction" {
 		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
 	}
 	if identifier.Name == "#uv" {
 		return "texCoordInOut"
 	}
-	if mappedName, ok := t.nameMapping[identifier.Name]; ok {
-		return mappedName
-	}
-	panic(fmt.Errorf("unknown identifier: %s", identifier.Name))
+	return t.translateName(identifier.Name)
+}
+
+func (t *translator) translateFieldIdentifier(identifier *lsl.FieldIdentifier) string {
+	obj := t.translateIdentifier(&lsl.Identifier{
+		Name: identifier.ObjName,
+	})
+	field := identifier.FieldName
+	return fmt.Sprintf("%s.%s", obj, field)
+}
+
+func (t *translator) translateFloatLiteral(literal *lsl.FloatLiteral) string {
+	return fmt.Sprintf("%f", literal.Value)
 }
 
 func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
