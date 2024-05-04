@@ -179,7 +179,14 @@ func (t *translator) translateConditional(conditional *lsl.Conditional) {
 func (t *translator) translateAssignment(assignment *lsl.Assignment) {
 	target := t.translateExpression(assignment.Target)
 	expression := t.translateExpression(assignment.Expression)
-	t.codeLines = append(t.codeLines, fmt.Sprintf("%s = %s;", target, expression))
+	switch assignment.Operator {
+	case "=":
+		t.codeLines = append(t.codeLines, fmt.Sprintf("%s = %s;", target, expression))
+	case "*=":
+		t.codeLines = append(t.codeLines, fmt.Sprintf("%s *= %s;", target, expression))
+	default:
+		panic(fmt.Errorf("unknown assignment operator: %s", assignment.Operator))
+	}
 }
 
 func (t *translator) translateExpression(expression lsl.Expression) string {
@@ -224,8 +231,11 @@ func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 	if identifier.Name == "#direction" {
 		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
 	}
-	if identifier.Name == "#uv" {
+	if identifier.Name == "#uv" || identifier.Name == "#vertexUV" {
 		return "texCoordInOut"
+	}
+	if identifier.Name == "#vertexColor" {
+		return "colorInOut"
 	}
 	return t.translateName(identifier.Name)
 }

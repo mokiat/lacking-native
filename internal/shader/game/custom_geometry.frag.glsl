@@ -24,6 +24,10 @@ smooth in vec4 colorInOut;
 
 void main()
 {
+	/* if not .UseVertexColoring */
+	vec4 colorInOut = vec4(1.0, 1.0, 1.0, 1.0);
+	/* end */
+
 	vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
 	float metallic = 0.0;
 	vec3 normal = normalize(normalInOut);
