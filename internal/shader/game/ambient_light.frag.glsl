@@ -47,7 +47,7 @@ vec3 calculateAmbientHDR(ambientSetup s)
 
 	vec3 lightDirection = reflect(s.viewDirection, s.normal);
 	vec3 reflectedLightIntensity = pow(mix(
-			pow(texture(refractionTextureIn, lightDirection) / pi, vec4(0.25)), // TODO: Do we divide here by 2 * Pi as well?
+			pow(texture(refractionTextureIn, lightDirection) / (2.0 * pi), vec4(0.25)), // TODO: Do we divide here by 2 * Pi as well?
 			pow(texture(reflectionTextureIn, lightDirection), vec4(0.25)),
 			pow(1.0 - s.roughness, 4.0)
 		), vec4(4.0)).xyz;
