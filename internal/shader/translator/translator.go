@@ -143,6 +143,8 @@ func (t *translator) translateStatement(statement lsl.Statement) {
 		t.translateDiscard()
 	case *lsl.Assignment:
 		t.translateAssignment(stmt)
+	case *lsl.VariableDeclaration:
+		t.translateVariableDeclaration(stmt)
 	case *lsl.Conditional:
 		t.translateConditional(stmt)
 	default:
@@ -182,11 +184,20 @@ func (t *translator) translateAssignment(assignment *lsl.Assignment) {
 	switch assignment.Operator {
 	case "=":
 		t.codeLines = append(t.codeLines, fmt.Sprintf("%s = %s;", target, expression))
+	case "+=":
+		t.codeLines = append(t.codeLines, fmt.Sprintf("%s += %s;", target, expression))
 	case "*=":
 		t.codeLines = append(t.codeLines, fmt.Sprintf("%s *= %s;", target, expression))
 	default:
 		panic(fmt.Errorf("unknown assignment operator: %s", assignment.Operator))
 	}
+}
+
+func (t *translator) translateVariableDeclaration(declaration *lsl.VariableDeclaration) {
+	varName := t.translateName(declaration.Name)
+	varType := t.translateType(declaration.Type)
+	expression := t.translateExpression(declaration.Assignment)
+	t.codeLines = append(t.codeLines, fmt.Sprintf("%s %s = %s;", varType, varName, expression))
 }
 
 func (t *translator) translateExpression(expression lsl.Expression) string {
@@ -231,11 +242,17 @@ func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 	if identifier.Name == "#direction" {
 		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
 	}
+	if identifier.Name == "#normal" {
+		return "normalInOut" // TODO: varyingNormal
+	}
 	if identifier.Name == "#uv" || identifier.Name == "#vertexUV" {
 		return "texCoordInOut"
 	}
 	if identifier.Name == "#vertexColor" {
 		return "colorInOut"
+	}
+	if identifier.Name == "#time" {
+		return "lackingTime"
 	}
 	return t.translateName(identifier.Name)
 }
@@ -258,6 +275,12 @@ func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
 		return t.translateTextureCall(call)
 	case "rgb":
 		return t.translateRGBCall(call)
+	case "cos":
+		return t.translateCosCall(call)
+	case "sin":
+		return t.translateSinCall(call)
+	case "mix":
+		return t.translateMixCall(call)
 	default:
 		panic(fmt.Errorf("unknown function call: %s", call.Name))
 	}
@@ -292,6 +315,50 @@ func (t *translator) translateRGBCall(call *lsl.FunctionCall) string {
 	}
 }
 
+func (t *translator) translateCosCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameFloat):
+		return fmt.Sprintf("cos(%s)",
+			t.translateExpression(call.Arguments[0]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateSinCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameFloat):
+		return fmt.Sprintf("sin(%s)",
+			t.translateExpression(call.Arguments[0]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateMixCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameFloat, lsl.TypeNameFloat, lsl.TypeNameFloat):
+		return fmt.Sprintf("mix(%s, %s, %s)",
+			t.translateExpression(call.Arguments[0]),
+			t.translateExpression(call.Arguments[1]),
+			t.translateExpression(call.Arguments[2]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
 func (t *translator) translateName(name string) string {
 	if mappedName, ok := t.nameMapping[name]; ok {
 		return mappedName
@@ -299,6 +366,21 @@ func (t *translator) translateName(name string) string {
 	mappedName := t.nextName()
 	t.nameMapping[name] = mappedName
 	return mappedName
+}
+
+func (t *translator) translateType(typeName string) string {
+	switch typeName {
+	case lsl.TypeNameFloat:
+		return "float"
+	case lsl.TypeNameVec2:
+		return "vec2"
+	case lsl.TypeNameVec3:
+		return "vec3"
+	case lsl.TypeNameVec4:
+		return "vec4"
+	default:
+		panic(fmt.Errorf("unknown type: %s", typeName))
+	}
 }
 
 func (t *translator) nextName() string {

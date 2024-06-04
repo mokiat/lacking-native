@@ -7,12 +7,16 @@ layout(location = 1) out vec4 fbColor1Out; // normal + roughness
 /* $line */
 /*end*/
 
+/*if .UniformLines */
 layout (std140) uniform Material
 {
 	/*range $line := .UniformLines */
 	/* $line */
 	/*end*/
 };
+/*end*/
+
+/*template "ubo_camera.glsl"*/
 
 smooth in vec3 normalInOut;
 /*if .UseTexCoords*/
