@@ -196,8 +196,12 @@ func (t *translator) translateAssignment(assignment *lsl.Assignment) {
 func (t *translator) translateVariableDeclaration(declaration *lsl.VariableDeclaration) {
 	varName := t.translateName(declaration.Name)
 	varType := t.translateType(declaration.Type)
-	expression := t.translateExpression(declaration.Assignment)
-	t.codeLines = append(t.codeLines, fmt.Sprintf("%s %s = %s;", varType, varName, expression))
+	if declaration.Assignment != nil {
+		expression := t.translateExpression(declaration.Assignment)
+		t.codeLines = append(t.codeLines, fmt.Sprintf("%s %s = %s;", varType, varName, expression))
+	} else {
+		t.codeLines = append(t.codeLines, fmt.Sprintf("%s %s;", varType, varName))
+	}
 }
 
 func (t *translator) translateExpression(expression lsl.Expression) string {

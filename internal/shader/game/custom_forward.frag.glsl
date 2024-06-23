@@ -2,12 +2,16 @@
 
 layout(location = 0) out vec4 fbColor0Out;
 
+/*if .UniformLines */
 layout (std140) uniform Material
 {
 	/*range $line := .UniformLines */
 	/* $line */
 	/*end*/
 };
+/*end*/
+
+/*template "ubo_camera.glsl"*/
 
 void main()
 {
