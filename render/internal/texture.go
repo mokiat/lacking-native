@@ -160,10 +160,8 @@ func NewSampler(info render.SamplerInfo) *Sampler {
 	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_S, glWrap(info.Wrapping))
 	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_T, glWrap(info.Wrapping))
 	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_R, glWrap(info.Wrapping))
-
 	gl.SamplerParameteri(id, gl.TEXTURE_MIN_FILTER, glFilter(info.Filtering, info.Mipmapping))
 	gl.SamplerParameteri(id, gl.TEXTURE_MAG_FILTER, glFilter(info.Filtering, false)) // no mipmaps when magnification
-
 	if info.Comparison.Specified {
 		gl.SamplerParameteri(id, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE)
 		gl.SamplerParameteri(id, gl.TEXTURE_COMPARE_FUNC, int32(glEnumFromComparison(info.Comparison.Value)))
