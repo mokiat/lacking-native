@@ -7,7 +7,6 @@ uniform sampler2D lackingSourceImage;
 layout (std140) uniform BloomBlurData
 {
 	float horizontal;
-	float steps; // TODO: Remove
 };
 
 noperspective in vec2 texCoordInOut;
@@ -42,41 +41,4 @@ void main()
 	}
 	targetHDR /= 10.0;
 	fbColor0Out = vec4(targetHDR, 1.0);
-
-
-	// vec2 sampleCoord = texCoordInOut;
-	// vec2 prevSampleCoord;
-	// vec2 nextSampleCoord;
-	// if (horizontal > 0.5) {
-	// 	prevSampleCoord = sampleCoord - vec2(-hStep, 0.0);
-	// 	nextSampleCoord = sampleCoord + vec2(hStep, 0.0);
-	// } else {
-	// 	prevSampleCoord = sampleCoord - vec2(0.0, -vStep);
-	// 	nextSampleCoord = sampleCoord + vec2(0.0, vStep);
-	// }
-
-	// vec3 targetHDR = 
-	// 	2.0 * texture(lackingSourceImage, sampleCoord).xyz +
-	// 	1.0 * texture(lackingSourceImage, prevSampleCoord).xyz +
-	// 	1.0 * texture(lackingSourceImage, nextSampleCoord).xyz;
-	// targetHDR /= 4.0;
-	// fbColor0Out = vec4(targetHDR, 1.0);
-	
-//	vec3 targetHDR = texture(lackingSourceImage, texCoordInOut).xyz;
-//	
-//	for (float i = 1.0; i <= steps; i++) {
-//		vec2 offset;
-//		if (horizontal > 0.5) {
-//			float stepSize = 1.0 / float(size.x);
-//			offset = vec2(i * stepSize, 0.0);
-//		} else {
-//			float stepSize = 1.0 / float(size.y);
-//			offset = vec2(0.0, i * stepSize);
-//		}
-//		targetHDR += texture(lackingSourceImage, texCoordInOut + offset).xyz;
-//		targetHDR += texture(lackingSourceImage, texCoordInOut - offset).xyz;
-//	}
-//
-//	targetHDR /= (2.0 * steps + 1.0);
-//	fbColor0Out = vec4(targetHDR, 1.0);
 }

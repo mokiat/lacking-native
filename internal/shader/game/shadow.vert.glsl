@@ -33,5 +33,5 @@ void main()
 	// NOTE: For custom shaders: To get the model position of the vertex
 	// just multiply the coordIn by the inverse modelMatrixIn. Don't change
 	// the armature to relative matrices.
-  gl_Position = projectionMatrixIn * (viewMatrixIn * worldPosition);
+	gl_Position = projectionMatrixIn * (viewMatrixIn * worldPosition);
 }

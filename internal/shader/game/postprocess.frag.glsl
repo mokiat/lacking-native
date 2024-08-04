@@ -17,7 +17,6 @@ void main()
 	vec3 hdr = texture(fbColor0TextureIn, texCoordInOut).xyz;
 	/*if .UseBloom*/
 	hdr += texture(lackingBloomTexture, texCoordInOut).xyz;
-	// hdr = texture(lackingBloomTexture, texCoordInOut).xyz;
 	/*end*/
 	vec3 exposedHDR = hdr * exposure;
 	/*if .UseReinhard*/

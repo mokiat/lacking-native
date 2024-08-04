@@ -47,7 +47,7 @@ vec3 calculateAmbientHDR(ambientSetup s)
 
 	vec3 lightDirection = reflect(s.viewDirection, s.normal);
 	vec3 reflectedLightIntensity = pow(mix(
-			pow(texture(refractionTextureIn, lightDirection) / (2.0 * pi), vec4(0.25)), // TODO: Do we divide here by 2 * Pi as well?
+			pow(texture(refractionTextureIn, lightDirection) / (2.0 * pi), vec4(0.25)),
 			pow(texture(reflectionTextureIn, lightDirection), vec4(0.25)),
 			pow(1.0 - s.roughness, 4.0)
 		), vec4(4.0)).xyz;
@@ -57,7 +57,7 @@ vec3 calculateAmbientHDR(ambientSetup s)
 	vec3 reflectedHDR = fresnel * s.reflectedColor * reflectedLightIntensity * geometry;
 
 	vec3 refractedLightIntensity = texture(refractionTextureIn, -s.normal).xyz;
-	vec3 refractedHDR = (vec3(1.0) - fresnel) * s.refractedColor * refractedLightIntensity / (2.0 * pi); // 2 * pi because of semisphere
+	vec3 refractedHDR = (vec3(1.0) - fresnel) * s.refractedColor * refractedLightIntensity / (2.0 * pi);
 
 	return (reflectedHDR + refractedHDR);
 }
