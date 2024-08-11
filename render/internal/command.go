@@ -12,6 +12,7 @@ const (
 	CommandKindBindPipeline
 	CommandKindUniformBufferUnit
 	CommandKindTextureUnit
+	CommandKindSamplerUnit
 	CommandKindDraw
 	CommandKindDrawIndexed
 )
@@ -195,6 +196,11 @@ type CommandTextureUnit struct {
 	TextureID uint32
 }
 
+type CommandSamplerUnit struct {
+	Index     uint32
+	SamplerID uint32
+}
+
 type CommandDraw struct {
 	VertexOffset  int32
 	VertexCount   int32
@@ -202,7 +208,7 @@ type CommandDraw struct {
 }
 
 type CommandDrawIndexed struct {
-	IndexOffset   int32
-	IndexCount    int32
-	InstanceCount int32
+	IndexByteOffset int32
+	IndexCount      int32
+	InstanceCount   int32
 }

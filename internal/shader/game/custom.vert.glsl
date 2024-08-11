@@ -1,30 +1,61 @@
-/*template "version.glsl"*/
+/* template "version.glsl" */
 
-layout(location = 0) in vec4 coordIn;
-/*if .UseArmature*/
-layout(location = 5) in vec4 weightsIn;
-layout(location = 6) in uvec4 jointsIn;
-/*end*/
+/* if .HasCoords */
+layout(location = 0) in vec4 attrCoord;
+/* end */
+/* if .HasNormals */
+layout(location = 1) in vec3 attrNormal;
+/* end */
+/* if .HasTangents */
+layout(location = 2) in vec3 attrTangent;
+/* end */
+/* if .HasTexCoords */
+layout(location = 3) in vec2 attrTexCoord;
+/* end */
+/* if .HasVertexColoring */
+layout(location = 4) in vec4 attrColor;
+/* end */
+/* if .HasArmature */
+layout(location = 5) in vec4 attrWeights;
+layout(location = 6) in uvec4 attrJoints;
+/* end */
 
-/*template "ubo_light.glsl"*/
+/* if .LoadGeometryPreset */
+/* template "preset_geometry_global.vert.glsl" */
+/* end */
 
-/*template "ubo_model.glsl"*/
+/* if .LoadSkyPreset */
+/* template "preset_sky_global.vert.glsl" */
+/* end */
+
+/* range $line := .TextureLines */
+/* $line */
+/* end */
+
+/* if .UniformLines */
+layout (std140) uniform Material
+{
+	/* range $line := .UniformLines */
+	/* $line */
+	/* end */
+};
+/* end */
+
+/* range $line := .VaryingLines */
+/* $line */
+/* end */
 
 void main()
 {
-	/*if .UseArmature*/
-	mat4 modelMatrixA = modelMatrixIn[jointsIn.x];
-	mat4 modelMatrixB = modelMatrixIn[jointsIn.y];
-	mat4 modelMatrixC = modelMatrixIn[jointsIn.z];
-	mat4 modelMatrixD = modelMatrixIn[jointsIn.w];
-	vec4 worldPosition =
-		modelMatrixA * (coordIn * weightsIn.x) +
-		modelMatrixB * (coordIn * weightsIn.y) +
-		modelMatrixC * (coordIn * weightsIn.z) +
-		modelMatrixD * (coordIn * weightsIn.w);
-	/*else*/
-	mat4 modelMatrix = modelMatrixIn[gl_InstanceID];
-	vec4 worldPosition = modelMatrix * coordIn;
-	/*end*/
-  gl_Position = lightProjectionMatrixIn * (lightViewMatrixIn * worldPosition);
+	/* if .LoadGeometryPreset */
+	/* template "preset_geometry_pre.vert.glsl" */
+	/* end */
+
+	/* if .LoadSkyPreset */
+	/* template "preset_sky_pre.vert.glsl" */
+	/* end */
+
+	/* range $line := .CodeLines */
+	/* $line */
+	/* end */
 }

@@ -63,6 +63,10 @@ func (a *API) CreateDepthStencilTexture2D(info render.DepthStencilTexture2DInfo)
 	return internal.NewDepthStencilTexture2D(info)
 }
 
+func (a *API) CreateSampler(info render.SamplerInfo) render.Sampler {
+	return internal.NewSampler(info)
+}
+
 func (a *API) CreateVertexBuffer(info render.BufferInfo) render.Buffer {
 	return internal.NewVertexBuffer(info)
 }
@@ -87,7 +91,7 @@ func (a *API) CreatePipeline(info render.PipelineInfo) render.Pipeline {
 	return internal.NewPipeline(info)
 }
 
-func (a *API) CreateCommandBuffer(initialCapacity int) render.CommandBuffer {
+func (a *API) CreateCommandBuffer(initialCapacity uint) render.CommandBuffer {
 	return internal.NewCommandBuffer(initialCapacity)
 }
 

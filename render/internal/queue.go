@@ -93,17 +93,17 @@ func (q *Queue) Invalidate() {
 	gl.Enable(gl.CLIP_DISTANCE3)
 }
 
-func (q *Queue) WriteBuffer(buffer render.Buffer, offset int, data []byte) {
+func (q *Queue) WriteBuffer(buffer render.Buffer, offset uint32, data []byte) {
 	actualBuffer := buffer.(*Buffer)
 	gl.BindBuffer(actualBuffer.kind, actualBuffer.id)
-	gl.BufferSubData(actualBuffer.kind, offset, len(data), gl.Ptr(&data[0]))
+	gl.BufferSubData(actualBuffer.kind, int(offset), len(data), gl.Ptr(&data[0]))
 	gl.BindBuffer(actualBuffer.kind, 0)
 }
 
-func (q *Queue) ReadBuffer(buffer render.Buffer, offset int, target []byte) {
+func (q *Queue) ReadBuffer(buffer render.Buffer, offset uint32, target []byte) {
 	actualBuffer := buffer.(*Buffer)
 	gl.BindBuffer(actualBuffer.kind, actualBuffer.id)
-	gl.GetBufferSubData(actualBuffer.kind, offset, len(target), gl.Ptr(&target[0]))
+	gl.GetBufferSubData(actualBuffer.kind, int(offset), len(target), gl.Ptr(&target[0]))
 	gl.BindBuffer(actualBuffer.kind, 0)
 }
 
@@ -130,6 +130,9 @@ func (q *Queue) Submit(commands render.CommandBuffer) {
 		case CommandKindTextureUnit:
 			command := readCommandChunk[CommandTextureUnit](commandBuffer)
 			q.executeCommandTextureUnit(command)
+		case CommandKindSamplerUnit:
+			command := readCommandChunk[CommandSamplerUnit](commandBuffer)
+			q.executeCommandSamplerUnit(command)
 		case CommandKindUniformBufferUnit:
 			command := readCommandChunk[CommandUniformBufferUnit](commandBuffer)
 			q.executeCommandUniformBufferUnit(command)
@@ -563,6 +566,15 @@ func (q *Queue) executeCommandTextureUnit(command CommandTextureUnit) {
 	gl.BindTexture(texture.kind, texture.id)
 }
 
+func (q *Queue) executeCommandSamplerUnit(command CommandSamplerUnit) {
+	if command.SamplerID != 0 {
+		sampler := samplers.Get(command.SamplerID)
+		gl.BindSampler(command.Index, sampler.id)
+	} else {
+		gl.BindSampler(command.Index, 0) // disable
+	}
+}
+
 func (q *Queue) executeCommandUniformBufferUnit(command CommandUniformBufferUnit) {
 	gl.BindBufferRange(
 		gl.UNIFORM_BUFFER,
@@ -587,7 +599,7 @@ func (q *Queue) executeCommandDrawIndexed(command CommandDrawIndexed) {
 		q.currentTopology.Value,
 		command.IndexCount,
 		q.currentIndexType.Value,
-		gl.PtrOffset(int(command.IndexOffset)),
+		gl.PtrOffset(int(command.IndexByteOffset)),
 		command.InstanceCount,
 	)
 }

@@ -6,7 +6,7 @@ layout(location = 5) in vec4 weightsIn;
 layout(location = 6) in uvec4 jointsIn;
 /*end*/
 
-/*template "ubo_camera.glsl"*/
+/*template "ubo_light.glsl"*/
 
 /*template "ubo_model.glsl"*/
 
@@ -30,8 +30,5 @@ void main()
 	mat4 modelMatrix = modelMatrixIn[gl_InstanceID];
 	vec4 worldPosition = modelMatrix * coordIn;
 	/*end*/
-	// NOTE: For custom shaders: To get the model position of the vertex
-	// just multiply the coordIn by the inverse modelMatrixIn. Don't change
-	// the armature to relative matrices.
-	gl_Position = projectionMatrixIn * (viewMatrixIn * worldPosition);
+  gl_Position = lightProjectionMatrixIn * (lightViewMatrixIn * worldPosition);
 }

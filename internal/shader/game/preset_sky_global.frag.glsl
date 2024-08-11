@@ -1,0 +1,1 @@
+smooth in vec3 varyingDirection;
