@@ -112,6 +112,19 @@ func (b *CommandBuffer) BeginRenderPass(info render.RenderPassInfo) {
 	})
 }
 
+func (b *CommandBuffer) SetViewport(x, y, width, height uint32) {
+	b.verifyIsRenderPass()
+	writeCommandChunk(b, CommandHeader{
+		Kind: CommandKindSetViewport,
+	})
+	writeCommandChunk(b, CommandSetViewport{
+		X:      int32(x),
+		Y:      int32(y),
+		Width:  int32(width),
+		Height: int32(height),
+	})
+}
+
 func (b *CommandBuffer) BindPipeline(pipeline render.Pipeline) {
 	b.verifyIsRenderPass()
 	writeCommandChunk(b, CommandHeader{
