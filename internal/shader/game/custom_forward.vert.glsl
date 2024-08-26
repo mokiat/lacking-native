@@ -6,7 +6,7 @@ layout(location = 5) in vec4 weightsIn;
 layout(location = 6) in uvec4 jointsIn;
 /*end*/
 
-/*template "ubo_light.glsl"*/
+/*template "ubo_camera.glsl"*/
 
 /*template "ubo_model.glsl"*/
 
@@ -30,5 +30,5 @@ void main()
 	mat4 modelMatrix = modelMatrixIn[gl_InstanceID];
 	vec4 worldPosition = modelMatrix * coordIn;
 	/*end*/
-  gl_Position = lightProjectionMatrixIn * (lightViewMatrixIn * worldPosition);
+  gl_Position = projectionMatrixIn * (viewMatrixIn * worldPosition);
 }
