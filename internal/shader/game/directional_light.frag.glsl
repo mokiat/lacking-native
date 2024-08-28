@@ -6,14 +6,14 @@ uniform sampler2D fbColor0TextureIn;
 uniform sampler2D fbColor1TextureIn;
 uniform sampler2D fbDepthTextureIn;
 /*if .UseShadowMapping*/
-uniform sampler2DShadow fbShadowTextureIn;
+uniform sampler2DShadow lackingShadowMapNear;
+uniform sampler2DShadow lackingShadowMapMid;
+uniform sampler2DShadow lackingShadowMapFar;
 /*end*/
 
 /*template "ubo_camera.glsl"*/
 
 /*template "ubo_light.glsl"*/
-
-/*template "ubo_light_properties.glsl"*/
 
 /*template "math.glsl"*/
 
@@ -37,7 +37,7 @@ void main()
 	vec3 refractedColor = baseColor * (1.0 - metalness);
 	vec3 reflectedColor = mix(vec3(0.02), baseColor, metalness);
 
-	vec3 lightDirection = normalize(lightMatrixIn[2].xyz);
+	vec3 lightDirection = normalize(lackingLightModelMatrix[2].xyz);
 
 	vec3 lightIntensity = lightIntensityIn.xyz * lightIntensityIn.w;
 
@@ -54,10 +54,8 @@ void main()
 	float attenuation = 1.0;
 
 	/*if .UseShadowMapping*/
-	attenuation *= shadowAttenuation(fbShadowTextureIn, ShadowSetup(
-		lightProjectionMatrixIn,
-		lightViewMatrixIn,
-		lightMatrixIn,
+	attenuation *= shadowAttenuation(lackingShadowMapNear, ShadowSetup(
+		lackingLightShadowMatrixNear,
 		worldPosition,
 		normal
 	));

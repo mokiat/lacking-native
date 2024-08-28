@@ -10,8 +10,6 @@ uniform sampler2D fbDepthTextureIn;
 
 /*template "ubo_light.glsl"*/
 
-/*template "ubo_light_properties.glsl"*/
-
 /*template "math.glsl"*/
 
 /*template "lighting.glsl"*/
@@ -34,12 +32,12 @@ void main()
 	vec3 refractedColor = baseColor * (1.0 - metalness);
 	vec3 reflectedColor = mix(vec3(0.02), baseColor, metalness);
 
-	vec3 lightDirection = lightMatrixIn[3].xyz - worldPosition;
+	vec3 lightDirection = lackingLightModelMatrix[3].xyz - worldPosition;
 	float lightDistance = length(lightDirection);
 	float lightRange = lightSpanIn.x;
 	float lightOuterAngle = lightSpanIn.y;
 	float lightInnerAngle = lightSpanIn.z;
-	float lightAngle = acos(dot(normalize(lightDirection), normalize(lightMatrixIn[1].xyz)));
+	float lightAngle = acos(dot(normalize(lightDirection), normalize(lackingLightModelMatrix[1].xyz)));
 	float distAttenuation = getCappedDistanceAttenuation(lightDistance, lightRange);
 	float coneAttenuation = getConeAttenuation(lightAngle, lightOuterAngle, lightInnerAngle);
 

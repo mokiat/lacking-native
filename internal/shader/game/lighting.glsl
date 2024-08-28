@@ -131,9 +131,7 @@ float textureClampToBorder(sampler2DShadow tex, vec3 coord, float dValue)
 
 struct ShadowSetup
 {
-	mat4 lightProjectionMatrix;
-	mat4 lightViewMatrix;
-	mat4 lightMatrix;
+	mat4 lightShadowMatrix;
 	vec3 worldPosition;
 	vec3 normal;
 };
@@ -147,7 +145,7 @@ float shadowAttenuation(sampler2DShadow shadowTex, ShadowSetup s)
 	float bias = texelSize * 2.0;
 
 	vec3 pointPosition = s.worldPosition + s.normal * bias;
-	vec4 shadowClipPosition = s.lightProjectionMatrix * (s.lightViewMatrix * vec4(pointPosition, 1.0));
+	vec4 shadowClipPosition = s.lightShadowMatrix * vec4(pointPosition, 1.0);
 	vec3 shadowNDCPosition = shadowClipPosition.xyz / shadowClipPosition.w;
 	vec3 shadowUVPosition = shadowNDCPosition * 0.5 + vec3(0.5);
 
