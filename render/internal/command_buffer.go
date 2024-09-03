@@ -106,6 +106,8 @@ func (b *CommandBuffer) BeginRenderPass(info render.RenderPassInfo) {
 		DepthLoadOp:       CommandLoadOperationFromRender(info.DepthLoadOp),
 		DepthStoreOp:      CommandStoreOperationFromRender(info.DepthStoreOp),
 		DepthClearValue:   info.DepthClearValue,
+		DepthBias:         info.DepthBias,
+		DepthSlopeBias:    info.DepthSlopeBias,
 		StencilLoadOp:     CommandLoadOperationFromRender(info.StencilLoadOp),
 		StencilStoreOp:    CommandStoreOperationFromRender(info.StencilStoreOp),
 		StencilClearValue: int32(info.StencilClearValue),

@@ -55,6 +55,10 @@ func (a *API) CreateDepthTexture2D(info render.DepthTexture2DInfo) render.Textur
 	return internal.NewDepthTexture2D(info)
 }
 
+func (a *API) CreateDepthTexture2DArray(info render.DepthTexture2DArrayInfo) render.Texture {
+	return internal.NewDepthTexture2DArray(info)
+}
+
 func (a *API) CreateStencilTexture2D(info render.StencilTexture2DInfo) render.Texture {
 	return internal.NewStencilTexture2D(info)
 }

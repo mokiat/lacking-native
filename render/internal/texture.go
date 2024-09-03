@@ -22,9 +22,11 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 		dataFormat := glDataFormat(info.Format)
 		componentType := glDataComponentType(info.Format)
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(info.Width), int32(info.Height), dataFormat, componentType, gl.Ptr(info.Data))
-		if info.GenerateMipmaps {
-			gl.GenerateMipmap(gl.TEXTURE_2D)
-		}
+	}
+
+	if info.GenerateMipmaps {
+		// TODO: Move as separate command
+		gl.GenerateMipmap(gl.TEXTURE_2D)
 	}
 
 	result := &Texture{
@@ -59,6 +61,32 @@ func NewDepthTexture2D(info render.DepthTexture2DInfo) *Texture {
 
 		width:  info.Width,
 		height: info.Height,
+	}
+	textures.Track(id, result)
+	return result
+}
+
+func NewDepthTexture2DArray(info render.DepthTexture2DArrayInfo) *Texture {
+	var id uint32
+	gl.GenTextures(1, &id)
+	gl.BindTexture(gl.TEXTURE_2D_ARRAY, id)
+	gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	if info.Comparable {
+		gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE)
+		gl.TexStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.DEPTH_COMPONENT32F, int32(info.Width), int32(info.Height), int32(info.Layers))
+	} else {
+		gl.TexStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.DEPTH_COMPONENT24, int32(info.Width), int32(info.Height), int32(info.Layers))
+	}
+
+	result := &Texture{
+		id:     id,
+		kind:   gl.TEXTURE_2D_ARRAY,
+		width:  info.Width,
+		height: info.Height,
+		depth:  info.Layers,
 	}
 	textures.Track(id, result)
 	return result
@@ -140,10 +168,10 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.BackSideData[0]))
 	}
 
-	// TODO: Move as separate command
-	// if info.Mipmapping {
-	// 	gl.GenerateTextureMipmap(id)
-	// }
+	if info.GenerateMipmaps {
+		// TODO: Move as separate command
+		gl.GenerateMipmap(gl.TEXTURE_CUBE_MAP)
+	}
 
 	result := &Texture{
 		id:   id,

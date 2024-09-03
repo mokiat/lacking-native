@@ -55,6 +55,8 @@ type CommandBeginRenderPass struct {
 	DepthLoadOp       CommandLoadOperation
 	DepthStoreOp      CommandStoreOperation
 	DepthClearValue   float32
+	DepthBias         float32
+	DepthSlopeBias    float32
 	StencilLoadOp     CommandLoadOperation
 	StencilStoreOp    CommandStoreOperation
 	StencilClearValue int32
