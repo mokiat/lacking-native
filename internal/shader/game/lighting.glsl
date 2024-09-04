@@ -121,7 +121,7 @@ vec3 calculateDirectionalHDR(directionalSetup s)
 	return (reflectedHDR + refractedHDR) * s.lightIntensity * clamp(dot(s.normal, s.lightDirection), 0.0, 1.0);
 }
 
-float textureClampToBorder(sampler2DShadow tex, vec3 coord, float dValue)
+float textureClampToBorder(sampler2DArrayShadow tex, vec4 coord, float dValue)
 {
 	if (coord.x < 0.0 || coord.x > 1.0 || coord.y < 0.0 || coord.y > 1.0) {
 		return dValue;
@@ -134,11 +134,12 @@ struct ShadowSetup
 	mat4 lightShadowMatrix;
 	vec3 worldPosition;
 	vec3 normal;
+	float depth;
 };
 
-float shadowAttenuation(sampler2DShadow shadowTex, ShadowSetup s)
+float shadowAttenuation(sampler2DArrayShadow shadowTex, ShadowSetup s)
 {
-	vec2 scale = vec2(1.0) / vec2(textureSize(shadowTex, 0));
+	vec2 scale = vec2(1.0) / vec2(textureSize(shadowTex, 0).xy);
 
 	float w = 64.0; // TODO: From projection matrix
 	float texelSize = w * max(scale.x, scale.y);
@@ -163,12 +164,22 @@ float shadowAttenuation(sampler2DShadow shadowTex, ShadowSetup s)
 
 	float smoothness = 0.0;
 	for (int i = 0; i < 9; i++) {
-		vec3 offset = vec3(shifts[i] / vec2(4096), 0.0);
-		smoothness += textureClampToBorder(shadowTex, shadowUVPosition.xyz + offset, 1.0);
+		vec2 offset = shifts[i] / vec2(4096);
+		vec4 texCoord = vec4(
+			shadowUVPosition.xy + offset,
+			s.depth,
+			shadowUVPosition.z
+		);
+		smoothness += textureClampToBorder(shadowTex, texCoord, 1.0);
 	}
 	smoothness /= 9.0;
 
-	float amount = textureClampToBorder(shadowTex, shadowUVPosition.xyz, 1.0);
+	vec4 texCoord = vec4(
+		shadowUVPosition.xy,
+		s.depth,
+		shadowUVPosition.z
+	);
+	float amount = textureClampToBorder(shadowTex, texCoord, 1.0);
 	amount *= smoothness;
 	return amount;
 }

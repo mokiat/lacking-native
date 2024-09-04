@@ -1,23 +1,21 @@
-/*template "version.glsl"*/
+/* template "version.glsl" */
 
 layout(location = 0) out vec4 fbColor0Out;
 
 uniform sampler2D fbColor0TextureIn;
 uniform sampler2D fbColor1TextureIn;
 uniform sampler2D fbDepthTextureIn;
-/*if .UseShadowMapping*/
-uniform sampler2DShadow lackingShadowMapNear;
-uniform sampler2DShadow lackingShadowMapMid;
-uniform sampler2DShadow lackingShadowMapFar;
-/*end*/
+/* if .UseShadowMapping */
+uniform sampler2DArrayShadow lackingShadowMap;
+/* end */
 
-/*template "ubo_camera.glsl"*/
+/* template "ubo_camera.glsl" */
 
-/*template "ubo_light.glsl"*/
+/* template "ubo_light.glsl" */
 
-/*template "math.glsl"*/
+/* template "math.glsl" */
 
-/*template "lighting.glsl"*/
+/* template "lighting.glsl" */
 
 void main()
 {
@@ -53,13 +51,22 @@ void main()
 
 	float attenuation = 1.0;
 
-	/*if .UseShadowMapping*/
-	attenuation *= shadowAttenuation(lackingShadowMapNear, ShadowSetup(
-		lackingLightShadowMatrixNear,
-		worldPosition,
-		normal
-	));
-	/*end*/
+	/* if .UseShadowMapping */
+	for (int i = 0; i < 8; i++) {
+		vec2 cascade = lackingLightShadowCascades[i];
+		if (cascade.x == cascade.y) {
+			break;
+		}
+		float shadowFactor = shadowAttenuation(lackingShadowMap, ShadowSetup(
+			lackingLightShadowMatrices[i],
+			worldPosition,
+			normal,
+			float(i)
+		));
+		float shadowFactorMix = float((viewPosition.z <= -cascade.x) && (viewPosition.z > -cascade.y));
+		attenuation *= mix(1.0, shadowFactor, shadowFactorMix);
+	}
+	/* end */
 
 	fbColor0Out = vec4(hdr * attenuation, 1.0);
 }
