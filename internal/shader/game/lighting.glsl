@@ -150,37 +150,6 @@ float shadowAttenuation(sampler2DArrayShadow shadowTex, ShadowSetup s)
 	vec3 shadowNDCPosition = shadowClipPosition.xyz / shadowClipPosition.w;
 	vec3 shadowUVPosition = shadowNDCPosition * 0.5 + vec3(0.5);
 
-	#define SMOOTHNESS_COUNT 16
-	const vec2[SMOOTHNESS_COUNT] shifts = vec2[](
-		vec2(-1.5, -1.5),
-		vec2(-0.5, -1.5),
-		vec2(0.5, -1.5),
-		vec2(1.5, -1.5),
-		vec2(-1.5, -0.5),
-		vec2(-0.5, -0.5),
-		vec2(0.5, -0.5),
-		vec2(1.5, -0.5),
-		vec2(-1.5, 0.5),
-		vec2(-0.5, 0.5),
-		vec2(0.5, 0.5),
-		vec2(1.5, 0.5),
-		vec2(-1.5, 1.5),
-		vec2(-0.5, 1.5),
-		vec2(0.5, 1.5),
-		vec2(1.5, 1.5)
-	);
-
-	float smoothness = 0.0;
-	for (int i = 0; i < SMOOTHNESS_COUNT; i++) {
-		vec2 offset = shifts[i] * scale;
-		vec4 texCoord = vec4(
-			shadowUVPosition.xy + offset,
-			s.depth,
-			shadowUVPosition.z
-		);
-		smoothness += textureClampToBorder(shadowTex, texCoord, 1.0);
-	}
-	smoothness /= float(SMOOTHNESS_COUNT);
-	smoothness = clamp(smoothness * 2.0, 0.0, 1.0);
-	return smoothness;
+	vec4 texCoord = vec4(shadowUVPosition.xy, s.depth, shadowUVPosition.z);
+	return textureClampToBorder(shadowTex, texCoord, 1.0);
 }
