@@ -24,6 +24,8 @@ type Queue struct {
 	currentDepthTest                   opt.T[bool]
 	currentDepthWrite                  opt.T[bool]
 	currentDepthComparison             opt.T[uint32]
+	currentDepthBias                   opt.T[float32]
+	currentDepthSlopeBias              opt.T[float32]
 	currentStencilTest                 opt.T[bool]
 	currentStencilOpStencilFailFront   opt.T[uint32]
 	currentStencilOpDepthFailFront     opt.T[uint32]
@@ -60,6 +62,8 @@ func (q *Queue) Invalidate() {
 	q.currentDepthTest = opt.Unspecified[bool]()
 	q.currentDepthWrite = opt.Unspecified[bool]()
 	q.currentDepthComparison = opt.Unspecified[uint32]()
+	q.currentDepthBias = opt.Unspecified[float32]()
+	q.currentDepthSlopeBias = opt.Unspecified[float32]()
 	q.currentStencilTest = opt.Unspecified[bool]()
 	q.currentStencilOpStencilFailFront = opt.Unspecified[uint32]()
 	q.currentStencilOpDepthFailFront = opt.Unspecified[uint32]()
@@ -124,6 +128,9 @@ func (q *Queue) Submit(commands render.CommandBuffer) {
 		case CommandKindEndRenderPass:
 			command := readCommandChunk[CommandEndRenderPass](commandBuffer)
 			q.executeCommandEndRenderPass(command)
+		case CommandKindSetViewport:
+			command := readCommandChunk[CommandSetViewport](commandBuffer)
+			q.executeCommandSetViewport(command)
 		case CommandKindBindPipeline:
 			command := readCommandChunk[CommandBindPipeline](commandBuffer)
 			q.executeCommandBindPipeline(command)
@@ -247,11 +254,31 @@ func (q *Queue) executeCommandBeginRenderPass(command CommandBeginRenderPass) {
 			gl.ClearBufferiv(gl.STENCIL, 0, &stencilValue)
 		}
 	}
+
+	if isDirty(q.currentDepthBias, command.DepthBias) || isDirty(q.currentDepthSlopeBias, command.DepthSlopeBias) {
+		q.currentDepthBias = opt.V(command.DepthBias)
+		q.currentDepthSlopeBias = opt.V(command.DepthSlopeBias)
+		if command.DepthBias != 0.0 || command.DepthSlopeBias != 0.0 {
+			gl.Enable(gl.POLYGON_OFFSET_FILL)
+			gl.PolygonOffset(command.DepthSlopeBias, command.DepthBias)
+		} else {
+			gl.Disable(gl.POLYGON_OFFSET_FILL)
+		}
+	}
 }
 
 func (q *Queue) executeCommandEndRenderPass(command CommandEndRenderPass) {
 	// Nothing to do here currently. Newer OpenGL versions can invalid the
 	// framebuffer attachments, but we don't support that yet.
+}
+
+func (q *Queue) executeCommandSetViewport(command CommandSetViewport) {
+	gl.Viewport(
+		command.X,
+		command.Y,
+		command.Width,
+		command.Height,
+	)
 }
 
 func (q *Queue) executeCommandBindPipeline(command CommandBindPipeline) {

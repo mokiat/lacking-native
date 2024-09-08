@@ -8,6 +8,6 @@ layout(location = 0) in vec3 coordIn;
 
 void main()
 {
-	vec4 position = lightMatrixIn * vec4(coordIn, 1.0);
+	vec4 position = lackingLightModelMatrix * vec4(coordIn, 1.0);
 	gl_Position = projectionMatrixIn * (viewMatrixIn * position);
 }

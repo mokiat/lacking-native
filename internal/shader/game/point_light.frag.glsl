@@ -10,8 +10,6 @@ uniform sampler2D fbDepthTextureIn;
 
 /*template "ubo_light.glsl"*/
 
-/*template "ubo_light_properties.glsl"*/
-
 /*template "math.glsl"*/
 
 /*template "lighting.glsl"*/
@@ -34,7 +32,7 @@ void main()
 	vec3 refractedColor = baseColor * (1.0 - metalness);
 	vec3 reflectedColor = mix(vec3(0.02), baseColor, metalness);
 
-	vec3 lightDirection = lightMatrixIn[3].xyz - worldPosition;
+	vec3 lightDirection = lackingLightModelMatrix[3].xyz - worldPosition;
 	float lightDistance = length(lightDirection);
 	float lightRange = lightSpanIn.x;
 	float distAttenuation = getCappedDistanceAttenuation(lightDistance, lightRange);

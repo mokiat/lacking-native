@@ -9,6 +9,7 @@ const (
 	CommandKindCopyFramebufferToTexture
 	CommandKindBeginRenderPass
 	CommandKindEndRenderPass
+	CommandKindSetViewport
 	CommandKindBindPipeline
 	CommandKindUniformBufferUnit
 	CommandKindTextureUnit
@@ -54,6 +55,8 @@ type CommandBeginRenderPass struct {
 	DepthLoadOp       CommandLoadOperation
 	DepthStoreOp      CommandStoreOperation
 	DepthClearValue   float32
+	DepthBias         float32
+	DepthSlopeBias    float32
 	StencilLoadOp     CommandLoadOperation
 	StencilStoreOp    CommandStoreOperation
 	StencilClearValue int32
@@ -86,6 +89,13 @@ func CommandStoreOperationToRender(value CommandStoreOperation) render.StoreOper
 }
 
 type CommandEndRenderPass struct {
+}
+
+type CommandSetViewport struct {
+	X      int32
+	Y      int32
+	Width  int32
+	Height int32
 }
 
 type CommandBindPipeline struct {

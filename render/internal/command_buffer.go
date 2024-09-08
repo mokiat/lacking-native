@@ -106,9 +106,24 @@ func (b *CommandBuffer) BeginRenderPass(info render.RenderPassInfo) {
 		DepthLoadOp:       CommandLoadOperationFromRender(info.DepthLoadOp),
 		DepthStoreOp:      CommandStoreOperationFromRender(info.DepthStoreOp),
 		DepthClearValue:   info.DepthClearValue,
+		DepthBias:         info.DepthBias,
+		DepthSlopeBias:    info.DepthSlopeBias,
 		StencilLoadOp:     CommandLoadOperationFromRender(info.StencilLoadOp),
 		StencilStoreOp:    CommandStoreOperationFromRender(info.StencilStoreOp),
 		StencilClearValue: int32(info.StencilClearValue),
+	})
+}
+
+func (b *CommandBuffer) SetViewport(x, y, width, height uint32) {
+	b.verifyIsRenderPass()
+	writeCommandChunk(b, CommandHeader{
+		Kind: CommandKindSetViewport,
+	})
+	writeCommandChunk(b, CommandSetViewport{
+		X:      int32(x),
+		Y:      int32(y),
+		Width:  int32(width),
+		Height: int32(height),
 	})
 }
 

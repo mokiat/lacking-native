@@ -12,23 +12,52 @@ func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
 
 	var activeDrawBuffers [4]bool
 	var drawBuffers []uint32
-	for i, attachment := range info.ColorAttachments {
-		if colorAttachment, ok := attachment.(*Texture); ok {
-			attachmentID := gl.COLOR_ATTACHMENT0 + uint32(i)
-			gl.FramebufferTexture2D(gl.FRAMEBUFFER, attachmentID, gl.TEXTURE_2D, colorAttachment.id, 0)
-			drawBuffers = append(drawBuffers, attachmentID)
-			activeDrawBuffers[i] = true
+	for i, colorAttachment := range info.ColorAttachments {
+		if !colorAttachment.Specified {
+			continue
 		}
+		attachment := colorAttachment.Value
+		texture := attachment.Texture.(*Texture)
+		attachmentID := gl.COLOR_ATTACHMENT0 + uint32(i)
+		switch texture.kind {
+		case gl.TEXTURE_2D_ARRAY:
+			gl.FramebufferTextureLayer(gl.FRAMEBUFFER, attachmentID, texture.id, int32(attachment.MipmapLayer), int32(attachment.Depth))
+		default:
+			gl.FramebufferTexture2D(gl.FRAMEBUFFER, attachmentID, gl.TEXTURE_2D, texture.id, int32(attachment.MipmapLayer))
+		}
+		drawBuffers = append(drawBuffers, attachmentID)
+		activeDrawBuffers[i] = true
 	}
 
-	if depthStencilAttachment, ok := info.DepthStencilAttachment.(*Texture); ok {
-		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, depthStencilAttachment.id, 0)
-	} else {
-		if depthAttachment, ok := info.DepthAttachment.(*Texture); ok {
-			gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthAttachment.id, 0)
+	if info.DepthStencilAttachment.Specified {
+		attachment := info.DepthStencilAttachment.Value
+		texture := attachment.Texture.(*Texture)
+		switch texture.kind {
+		case gl.TEXTURE_2D_ARRAY:
+			gl.FramebufferTextureLayer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, texture.id, int32(attachment.MipmapLayer), int32(attachment.Depth))
+		default:
+			gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture.id, int32(attachment.MipmapLayer))
 		}
-		if stencilAttachment, ok := info.StencilAttachment.(*Texture); ok {
-			gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.TEXTURE_2D, stencilAttachment.id, 0)
+	} else {
+		if info.DepthAttachment.Specified {
+			attachment := info.DepthAttachment.Value
+			texture := attachment.Texture.(*Texture)
+			switch texture.kind {
+			case gl.TEXTURE_2D_ARRAY:
+				gl.FramebufferTextureLayer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, texture.id, int32(attachment.MipmapLayer), int32(attachment.Depth))
+			default:
+				gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, texture.id, int32(attachment.MipmapLayer))
+			}
+		}
+		if info.StencilAttachment.Specified {
+			attachment := info.StencilAttachment.Value
+			texture := attachment.Texture.(*Texture)
+			switch texture.kind {
+			case gl.TEXTURE_2D_ARRAY:
+				gl.FramebufferTextureLayer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, texture.id, int32(attachment.MipmapLayer), int32(attachment.Depth))
+			default:
+				gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture.id, int32(attachment.MipmapLayer))
+			}
 		}
 	}
 
