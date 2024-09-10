@@ -76,9 +76,9 @@ func NewDepthTexture2DArray(info render.DepthTexture2DArrayInfo) *Texture {
 	gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	if info.Comparable {
 		gl.TexParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE)
-		gl.TexStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.DEPTH_COMPONENT32F, int32(info.Width), int32(info.Height), int32(info.Layers))
+		gl.TexImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.DEPTH_COMPONENT32F, int32(info.Width), int32(info.Height), int32(info.Layers), 0, gl.DEPTH_COMPONENT, gl.FLOAT, nil)
 	} else {
-		gl.TexStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.DEPTH_COMPONENT24, int32(info.Width), int32(info.Height), int32(info.Layers))
+		gl.TexImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.DEPTH_COMPONENT24, int32(info.Width), int32(info.Height), int32(info.Layers), 0, gl.DEPTH_COMPONENT, gl.FLOAT, nil)
 	}
 
 	result := &Texture{
@@ -140,6 +140,7 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 	gl.BindTexture(gl.TEXTURE_CUBE_MAP, id)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
