@@ -51,20 +51,23 @@ void main()
 
 	float attenuation = 1.0;
 
+
 	/* if .UseShadowMapping */
-	for (int i = 0; i < 8; i++) {
+	int cascadeIndex = -1;
+	for (int i = 0; i < 4; i++) {
 		vec2 cascade = lackingLightShadowCascades[i];
-		if (cascade.x == cascade.y) {
-			break;
+		if ((viewPosition.z <= -cascade.x) && (viewPosition.z > -cascade.y)) {
+			cascadeIndex = i;
 		}
+	}
+	if (cascadeIndex >= 0) {
 		float shadowFactor = shadowAttenuation(lackingShadowMap, ShadowSetup(
-			lackingLightShadowMatrices[i],
+			lackingLightShadowMatrices[cascadeIndex],
 			worldPosition,
 			normal,
-			float(i)
+			float(cascadeIndex)
 		));
-		float shadowFactorMix = float((viewPosition.z <= -cascade.x) && (viewPosition.z > -cascade.y));
-		attenuation *= mix(1.0, shadowFactor, shadowFactorMix);
+		attenuation *= shadowFactor;
 	}
 	/* end */
 
