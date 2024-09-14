@@ -6,6 +6,10 @@ import (
 )
 
 func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating color texture 2D (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_2D, id)
@@ -30,9 +34,9 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 	}
 
 	result := &Texture{
-		id:   id,
-		kind: gl.TEXTURE_2D,
-
+		label:  info.Label,
+		id:     id,
+		kind:   gl.TEXTURE_2D,
 		width:  info.Width,
 		height: info.Height,
 	}
@@ -41,6 +45,10 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 }
 
 func NewDepthTexture2D(info render.DepthTexture2DInfo) *Texture {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating depth texture 2D (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_2D, id)
@@ -56,9 +64,9 @@ func NewDepthTexture2D(info render.DepthTexture2DInfo) *Texture {
 	}
 
 	result := &Texture{
-		id:   id,
-		kind: gl.TEXTURE_2D,
-
+		label:  info.Label,
+		id:     id,
+		kind:   gl.TEXTURE_2D,
 		width:  info.Width,
 		height: info.Height,
 	}
@@ -67,6 +75,10 @@ func NewDepthTexture2D(info render.DepthTexture2DInfo) *Texture {
 }
 
 func NewDepthTexture2DArray(info render.DepthTexture2DArrayInfo) *Texture {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating array depth texture 2D (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_2D_ARRAY, id)
@@ -82,6 +94,7 @@ func NewDepthTexture2DArray(info render.DepthTexture2DArrayInfo) *Texture {
 	}
 
 	result := &Texture{
+		label:  info.Label,
 		id:     id,
 		kind:   gl.TEXTURE_2D_ARRAY,
 		width:  info.Width,
@@ -93,6 +106,10 @@ func NewDepthTexture2DArray(info render.DepthTexture2DArrayInfo) *Texture {
 }
 
 func NewStencilTexture2D(info render.StencilTexture2DInfo) *Texture {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating stencil texture 2D (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_2D, id)
@@ -103,9 +120,9 @@ func NewStencilTexture2D(info render.StencilTexture2DInfo) *Texture {
 	gl.TexStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH24_STENCIL8, int32(info.Width), int32(info.Height))
 
 	result := &Texture{
-		id:   id,
-		kind: gl.TEXTURE_2D,
-
+		label:  info.Label,
+		id:     id,
+		kind:   gl.TEXTURE_2D,
 		width:  info.Width,
 		height: info.Height,
 	}
@@ -114,6 +131,10 @@ func NewStencilTexture2D(info render.StencilTexture2DInfo) *Texture {
 }
 
 func NewDepthStencilTexture2D(info render.DepthStencilTexture2DInfo) *Texture {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating depth-stencil texture 2D (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_2D, id)
@@ -124,9 +145,9 @@ func NewDepthStencilTexture2D(info render.DepthStencilTexture2DInfo) *Texture {
 	gl.TexStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH24_STENCIL8, int32(info.Width), int32(info.Height))
 
 	result := &Texture{
-		id:   id,
-		kind: gl.TEXTURE_2D,
-
+		label:  info.Label,
+		id:     id,
+		kind:   gl.TEXTURE_2D,
 		width:  info.Width,
 		height: info.Height,
 	}
@@ -135,6 +156,10 @@ func NewDepthStencilTexture2D(info render.DepthStencilTexture2DInfo) *Texture {
 }
 
 func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating color texture cube (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenTextures(1, &id)
 	gl.BindTexture(gl.TEXTURE_CUBE_MAP, id)
@@ -175,9 +200,9 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 	}
 
 	result := &Texture{
-		id:   id,
-		kind: gl.TEXTURE_CUBE_MAP,
-
+		label:  info.Label,
+		id:     id,
+		kind:   gl.TEXTURE_CUBE_MAP,
 		width:  info.Dimension,
 		height: info.Dimension,
 		depth:  info.Dimension,
@@ -188,12 +213,17 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 
 type Texture struct {
 	render.TextureMarker
-	id   uint32
-	kind uint32
 
+	label  string
+	id     uint32
+	kind   uint32
 	width  uint32
 	height uint32
 	depth  uint32
+}
+
+func (t *Texture) Label() string {
+	return t.label
 }
 
 func (t *Texture) Width() uint32 {
@@ -216,6 +246,10 @@ func (t *Texture) Release() {
 }
 
 func NewSampler(info render.SamplerInfo) *Sampler {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating sampler (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenSamplers(1, &id)
 	gl.SamplerParameteri(id, gl.TEXTURE_WRAP_S, glWrap(info.Wrapping))
@@ -229,7 +263,8 @@ func NewSampler(info render.SamplerInfo) *Sampler {
 	}
 
 	result := &Sampler{
-		id: id,
+		label: info.Label,
+		id:    id,
 	}
 	samplers.Track(result.id, result)
 	return result
@@ -237,7 +272,13 @@ func NewSampler(info render.SamplerInfo) *Sampler {
 
 type Sampler struct {
 	render.SamplerMarker
-	id uint32
+
+	label string
+	id    uint32
+}
+
+func (s *Sampler) Label() string {
+	return s.label
 }
 
 func (s *Sampler) Release() {

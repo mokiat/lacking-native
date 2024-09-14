@@ -12,6 +12,7 @@ func NewPipeline(info render.PipelineInfo) *Pipeline {
 	intVertexArray := info.VertexArray.(*VertexArray)
 
 	pipeline := &Pipeline{
+		label:     info.Label,
 		ProgramID: intProgram.id,
 		VertexArray: CommandBindVertexArray{
 			VertexArrayID: intVertexArray.id,
@@ -205,6 +206,7 @@ func glEnumFromBlendFactor(factor render.BlendFactor) uint32 {
 
 type Pipeline struct {
 	render.PipelineMarker
+	label            string
 	ProgramID        uint32
 	Topology         CommandTopology
 	CullTest         CommandCullTest
@@ -225,6 +227,10 @@ type Pipeline struct {
 	BlendEquation    CommandBlendEquation
 	BlendFunc        CommandBlendFunc
 	VertexArray      CommandBindVertexArray
+}
+
+func (p *Pipeline) Label() string {
+	return p.label
 }
 
 func (p *Pipeline) Release() {

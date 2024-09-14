@@ -2,4 +2,7 @@ package internal
 
 import "github.com/mokiat/lacking/debug/log"
 
-var logger = log.Namespace("lacking-native/render")
+var (
+	logger   = log.Namespace("lacking-native/render")
+	glLogger = log.Namespace("opengl")
+)
