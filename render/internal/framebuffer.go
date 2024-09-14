@@ -6,6 +6,10 @@ import (
 )
 
 func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating framebuffer (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenFramebuffers(1, &id)
 	gl.BindFramebuffer(gl.FRAMEBUFFER, id)
@@ -69,10 +73,11 @@ func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
 
 	status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if status != gl.FRAMEBUFFER_COMPLETE {
-		logger.Error("Framebuffer (%q) is incomplete!", info.Label)
+		logger.Error("Framebuffer (%v) is incomplete", info.Label)
 	}
 
 	result := &Framebuffer{
+		label:             info.Label,
 		id:                id,
 		activeDrawBuffers: activeDrawBuffers,
 	}
@@ -82,6 +87,7 @@ func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
 
 var DefaultFramebuffer = func() *Framebuffer {
 	result := &Framebuffer{
+		label:             "default",
 		id:                0,
 		activeDrawBuffers: [4]bool{true, false, false, false},
 	}
@@ -92,8 +98,13 @@ var DefaultFramebuffer = func() *Framebuffer {
 type Framebuffer struct {
 	render.FramebufferMarker
 
+	label             string
 	id                uint32
 	activeDrawBuffers [4]bool
+}
+
+func (f *Framebuffer) Label() string {
+	return f.label
 }
 
 func (f *Framebuffer) Release() {

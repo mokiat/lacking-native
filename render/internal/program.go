@@ -18,6 +18,10 @@ type ProgramInfo struct {
 }
 
 func NewProgram(info ProgramInfo) *Program {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating program (%v)", info.Label)()
+	}
+
 	vertexShader := newVertexShader(info.Label, info.VertexCode)
 	defer vertexShader.Release()
 
@@ -25,7 +29,8 @@ func NewProgram(info ProgramInfo) *Program {
 	defer fragmentShader.Release()
 
 	program := &Program{
-		id: gl.CreateProgram(),
+		label: info.Label,
+		id:    gl.CreateProgram(),
 	}
 
 	gl.AttachShader(program.id, vertexShader.id)
@@ -34,7 +39,7 @@ func NewProgram(info ProgramInfo) *Program {
 	defer gl.DetachShader(program.id, fragmentShader.id)
 
 	if err := program.link(); err != nil {
-		logger.Error("Program (%q) link error: %v!", info.Label, err)
+		logger.Error("Program (%v) link error: %v", info.Label, err)
 	}
 
 	if len(info.TextureBindings) > 0 {
@@ -58,7 +63,13 @@ func NewProgram(info ProgramInfo) *Program {
 
 type Program struct {
 	render.ProgramMarker
-	id uint32
+
+	label string
+	id    uint32
+}
+
+func (p *Program) Label() string {
+	return p.label
 }
 
 func (p *Program) Release() {

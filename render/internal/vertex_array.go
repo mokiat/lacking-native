@@ -8,6 +8,10 @@ import (
 )
 
 func NewVertexArray(info render.VertexArrayInfo) *VertexArray {
+	if glLogger.IsDebugEnabled() {
+		defer trackError("Error creating vertex array (%v)", info.Label)()
+	}
+
 	var id uint32
 	gl.GenVertexArrays(1, &id)
 	gl.BindVertexArray(id)
@@ -31,6 +35,7 @@ func NewVertexArray(info render.VertexArrayInfo) *VertexArray {
 	gl.BindVertexArray(0)
 
 	return &VertexArray{
+		label:       info.Label,
 		id:          id,
 		indexFormat: glIndexFormat(info.IndexFormat),
 	}
@@ -38,8 +43,14 @@ func NewVertexArray(info render.VertexArrayInfo) *VertexArray {
 
 type VertexArray struct {
 	render.VertexArrayMarker
+
+	label       string
 	id          uint32
 	indexFormat uint32
+}
+
+func (a *VertexArray) Label() string {
+	return a.label
 }
 
 func (a *VertexArray) Release() {
