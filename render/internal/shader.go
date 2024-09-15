@@ -40,9 +40,11 @@ func (s *Shader) Release() {
 }
 
 func (s *Shader) setSourceCode(code string) {
-	sources, free := gl.Strs(code + "\x00")
+	terminatedCode := code + "\x00"
+	sources, free := gl.Strs(terminatedCode)
 	defer free()
 	gl.ShaderSource(s.id, 1, sources, nil)
+	runtime.KeepAlive(terminatedCode)
 }
 
 func (s *Shader) compile() error {
@@ -64,7 +66,7 @@ func (s *Shader) getInfoLog() string {
 	gl.GetShaderiv(s.id, gl.INFO_LOG_LENGTH, &logLength)
 
 	log := strings.Repeat("\x00", int(logLength+1))
-	gl.GetShaderInfoLog(s.id, logLength, nil, gl.Str(log))
+	gl.GetShaderInfoLog(s.id, logLength, nil, StrPtr(log))
 	runtime.KeepAlive(log)
 	return log
 }

@@ -45,14 +45,20 @@ func NewProgram(info ProgramInfo) *Program {
 	if len(info.TextureBindings) > 0 {
 		gl.UseProgram(program.id)
 		for _, binding := range info.TextureBindings {
-			location := gl.GetUniformLocation(program.id, gl.Str(binding.Name+"\x00"))
-			gl.Uniform1i(location, int32(binding.Index))
+			name := binding.Name + "\x00"
+			location := gl.GetUniformLocation(program.id, StrPtr(name))
+			runtime.KeepAlive(name)
+			if location != -1 {
+				gl.Uniform1i(location, int32(binding.Index))
+			}
 		}
 		gl.UseProgram(0)
 	}
 
 	for _, binding := range info.UniformBindings {
-		location := gl.GetUniformBlockIndex(program.id, gl.Str(binding.Name+"\x00"))
+		name := binding.Name + "\x00"
+		location := gl.GetUniformBlockIndex(program.id, StrPtr(name))
+		runtime.KeepAlive(name)
 		if location != gl.INVALID_INDEX {
 			gl.UniformBlockBinding(program.id, location, uint32(binding.Index))
 		}
@@ -96,7 +102,7 @@ func (p *Program) getInfoLog() string {
 	gl.GetProgramiv(p.id, gl.INFO_LOG_LENGTH, &logLength)
 
 	log := strings.Repeat("\x00", int(logLength+1))
-	gl.GetProgramInfoLog(p.id, logLength, nil, gl.Str(log))
+	gl.GetProgramInfoLog(p.id, logLength, nil, StrPtr(log))
 	runtime.KeepAlive(log)
 	return log
 }
