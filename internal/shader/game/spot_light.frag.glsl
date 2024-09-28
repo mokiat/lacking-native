@@ -22,15 +22,13 @@ void main()
 	vec3 worldPosition = getWorldCoords(viewPosition, cameraMatrixIn);
 	vec3 cameraPosition = cameraMatrixIn[3].xyz;
 
-	vec4 albedoMetalness = texture(fbColor0TextureIn, screenCoord);
-	vec4 normalRoughness = texture(fbColor1TextureIn, screenCoord);
-	vec3 baseColor = albedoMetalness.xyz;
-	vec3 normal = normalize(normalRoughness.xyz);
-	float metalness = albedoMetalness.w;
-	float roughness = normalRoughness.w;
+	vec4 albedoMetallic = texture(fbColor0TextureIn, screenCoord);
+	vec3 baseColor = max(albedoMetallic.xyz, vec3(0.0));
+	float metallic = clamp(albedoMetallic.w, 0.0, 1.0);
 
-	vec3 refractedColor = baseColor * (1.0 - metalness);
-	vec3 reflectedColor = mix(vec3(0.02), baseColor, metalness);
+	vec4 normalRoughness = texture(fbColor1TextureIn, screenCoord);
+	vec3 normal = normalize(normalRoughness.xyz);
+	float roughness = clamp(normalRoughness.w, 0.0, 1.0);
 
 	vec3 lightDirection = lackingLightModelMatrix[3].xyz - worldPosition;
 	float lightDistance = length(lightDirection);
@@ -44,9 +42,9 @@ void main()
 	vec3 lightIntensity = lightIntensityIn.xyz * lightIntensityIn.w;
 
 	vec3 hdr = calculateDirectionalHDR(directionalSetup(
+		baseColor,
+		metallic,
 		roughness,
-		reflectedColor,
-		refractedColor,
 		normalize(cameraPosition - worldPosition),
 		normalize(lightDirection),
 		normal,

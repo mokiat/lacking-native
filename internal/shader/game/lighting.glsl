@@ -50,50 +50,53 @@ float getConeAttenuation(float angle, float outerAngle, float innerAngle)
   return hardAttenuation * (softAttenuation * softAttenuation);
 }
 
-struct fresnelInput
+struct FresnelInput
 {
-	vec3 reflectanceF0;
-	vec3 halfDirection;
-	vec3 lightDirection;
+	vec3 reflectance_f0;
+	vec3 half_dir;
+	vec3 view_dir;
 };
 
-vec3 calculateFresnel(fresnelInput i)
+vec3 calculate_fresnel(FresnelInput i)
 {
-	float halfLightDot = clamp(abs(dot(i.halfDirection, i.lightDirection)), 0.0, 1.0);
-	return i.reflectanceF0 + (1.0 - i.reflectanceF0) * pow(1.0 - halfLightDot, 5.0);
+	float half_dot_view = clamp(dot(i.half_dir, i.view_dir), 0.0, 1.0);
+	return i.reflectance_f0 + (1.0 - i.reflectance_f0) * pow(1.0 - half_dot_view, 5.0);
 }
 
 struct distributionInput
 {
-	float roughness;
 	vec3 normal;
 	vec3 halfDirection;
+	float roughness;
 };
 
 float calculateDistribution(distributionInput i)
 {
-	float sqrRough = i.roughness * i.roughness;
-	float halfNormDot = dot(i.normal, i.halfDirection);
-	float denom = halfNormDot * halfNormDot * (sqrRough - 1.0) + 1.0;
-	return sqrRough / (pi * denom * denom);
+	float alpha = i.roughness * i.roughness;
+	float alphaSqr = alpha * alpha;
+	float halfNormDot = clamp(dot(i.normal, i.halfDirection), 0.0, 1.0);
+	float denom = clamp((halfNormDot * halfNormDot) * (alphaSqr - 1.0) + 1.0, 0.001, 1.0);
+	return alphaSqr / (pi * denom * denom);
 }
 
 struct geometryInput
 {
+	vec3 normal;
+	vec3 viewDirection;
 	float roughness;
 };
 
 float calculateGeometry(geometryInput i)
 {
-	// TODO: Use better model
-	return 1.0 / 4.0;
+	float normViewDot = clamp(dot(i.normal, i.viewDirection), 0.01, 1.0);
+	return normViewDot / (normViewDot * (1.0 - i.roughness) + i.roughness);
 }
 
 struct directionalSetup
 {
+	vec3 baseColor;
+	float metallic;
 	float roughness;
-	vec3 reflectedColor;
-	vec3 refractedColor;
 	vec3 viewDirection;
 	vec3 lightDirection;
 	vec3 normal;
@@ -102,28 +105,49 @@ struct directionalSetup
 
 vec3 calculateDirectionalHDR(directionalSetup s)
 {
-	vec3 halfDirection = normalize(s.lightDirection + s.viewDirection);
-	vec3 fresnel = calculateFresnel(fresnelInput(
-		s.reflectedColor,
-		halfDirection,
-		s.lightDirection
+	float norm_dot_view = clamp(dot(s.normal, s.viewDirection), 0.01, 1.0);
+	float norm_dot_light = clamp(dot(s.normal, s.lightDirection), 0.01, 1.0);
+
+	vec3 mid_vector = s.lightDirection + s.viewDirection;
+	bool is_zero_vector = all(lessThan(abs(mid_vector), vec3(0.001)));
+	vec3 half_dir = is_zero_vector ? vec3(0.0) : normalize(mid_vector);
+
+	vec3 refracted_color = s.baseColor * (1.0 - s.metallic);
+	vec3 refraction_hdr = refracted_color / pi;
+
+	const vec3 dielectric_reflectance = vec3(0.03);
+	vec3 reflected_color = mix(dielectric_reflectance, s.baseColor, s.metallic);
+	vec3 fresnel = calculate_fresnel(FresnelInput(
+		reflected_color,
+		half_dir,
+		s.viewDirection
 	));
-	float distributionFactor = calculateDistribution(distributionInput(
-		s.roughness,
+	float distribution_factor = calculateDistribution(distributionInput(
 		s.normal,
-		halfDirection
-	));
-	float geometryFactor = calculateGeometry(geometryInput(
+		half_dir,
 		s.roughness
 	));
-	vec3 reflectedHDR = fresnel * distributionFactor * geometryFactor;
-	vec3 refractedHDR = (vec3(1.0) - fresnel) * s.refractedColor / pi;
-	return (reflectedHDR + refractedHDR) * s.lightIntensity * clamp(dot(s.normal, s.lightDirection), 0.0, 1.0);
+	float geom_view_factor = calculateGeometry(geometryInput(
+		s.normal,
+		s.viewDirection,
+		s.roughness
+	));
+	float geom_light_factor = calculateGeometry(geometryInput(
+		s.normal,
+		s.lightDirection,
+		s.roughness
+	));
+	float geom_factor = geom_view_factor * geom_light_factor;
+	float normalization_factor = 4.0 * norm_dot_view * norm_dot_light;
+	vec3 reflection_hdr = vec3(distribution_factor * geom_factor / normalization_factor);
+
+	vec3 brdf = mix(refraction_hdr, reflection_hdr, fresnel);
+	return brdf * norm_dot_light * s.lightIntensity;
 }
 
 float textureClampToBorder(sampler2DArrayShadow tex, vec4 coord, float dValue)
 {
-	if (coord.x < 0.0 || coord.x > 1.0 || coord.y < 0.0 || coord.y > 1.0) {
+	if (any(lessThan(coord.xy, vec2(0.0))) || any(greaterThan(coord.xy, vec2(1.0)))) {
 		return dValue;
 	}
 	return texture(tex, coord);

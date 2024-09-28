@@ -52,6 +52,8 @@ vec3 calculateAmbientHDR(ambientSetup s)
 			pow(1.0 - s.roughness, 4.0)
 		), vec4(4.0)).xyz;
 	float geometry = calculateGeometry(geometryInput(
+		s.normal,
+		s.viewDirection,
 		s.roughness
 	));
 	vec3 reflectedHDR = fresnel * s.reflectedColor * reflectedLightIntensity * geometry;
