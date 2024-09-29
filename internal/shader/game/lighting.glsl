@@ -63,19 +63,20 @@ vec3 calculate_fresnel(FresnelInput i)
 	return i.reflectance_f0 + (1.0 - i.reflectance_f0) * pow(1.0 - half_dot_view, 5.0);
 }
 
-struct distributionInput
+struct DistributionInput
 {
 	vec3 normal;
-	vec3 halfDirection;
+	vec3 half_dir;
 	float roughness;
 };
 
-float calculateDistribution(distributionInput i)
+float calculate_distribution(DistributionInput i)
 {
+	i.roughness = clamp(i.roughness, 0.02, 1.0);
 	float alpha = i.roughness * i.roughness;
 	float alphaSqr = alpha * alpha;
-	float halfNormDot = clamp(dot(i.normal, i.halfDirection), 0.0, 1.0);
-	float denom = clamp((halfNormDot * halfNormDot) * (alphaSqr - 1.0) + 1.0, 0.001, 1.0);
+	float halfNormDot = clamp(dot(i.normal, i.half_dir), 0.0, 1.0);
+	float denom = clamp((halfNormDot * halfNormDot) * (alphaSqr - 1.0) + 1.0, 0.00001, 1.0);
 	return alphaSqr / (pi * denom * denom);
 }
 
@@ -122,7 +123,7 @@ vec3 calculateDirectionalHDR(directionalSetup s)
 		half_dir,
 		s.viewDirection
 	));
-	float distribution_factor = calculateDistribution(distributionInput(
+	float distribution_factor = calculate_distribution(DistributionInput(
 		s.normal,
 		half_dir,
 		s.roughness
