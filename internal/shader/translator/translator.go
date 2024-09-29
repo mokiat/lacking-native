@@ -60,8 +60,9 @@ func (t *translator) Translate(shader *lsl.Shader) Output {
 }
 
 func (t *translator) translateTextureBlock(decl *lsl.TextureBlockDeclaration) {
-	for _, field := range decl.Fields {
-		name := t.translateName(field.Name)
+	for i, field := range decl.Fields {
+		name := fmt.Sprintf("lackingTexture%d", i)
+		t.nameMapping[field.Name] = name
 		var textureLine string
 		switch field.Type {
 		case lsl.TypeNameSampler2D:
