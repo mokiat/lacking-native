@@ -1,45 +1,48 @@
-/*template "version.glsl"*/
+/* template "version.glsl" */
 
 layout(location = 0) out vec4 fbColor0Out; // color + metallic
 layout(location = 1) out vec4 fbColor1Out; // normal + roughness
 
-/*range $line := .TextureLines */
+/* range $line := .TextureLines */
 /* $line */
-/*end*/
+/* end */
 
-/*if .UniformLines */
+/* if .UniformLines */
 layout (std140) uniform Material
 {
-	/*range $line := .UniformLines */
+	/* range $line := .UniformLines */
 	/* $line */
-	/*end*/
+	/* end */
 };
-/*end*/
+/* end */
 
-/*template "ubo_camera.glsl"*/
+/* template "ubo_camera.glsl" */
 
 smooth in vec3 normalInOut;
-/*if .UseTexCoords*/
+smooth in vec3 tangentInOut;
 smooth in vec2 texCoordInOut;
-/*end*/
-/*if .UseVertexColoring*/
 smooth in vec4 colorInOut;
-/*end*/
+
+vec3 mapNormal(vec3 texel, float scale)
+{
+	vec3 ls_normal = (texel * 2.0 - vec3(1.0)) * vec3(scale, scale, 1.0);
+	vec3 ws_normal = normalize(normalInOut);
+	vec3 ws_tangent = normalize(tangentInOut);
+	vec3 ws_bitangent = normalize(cross(ws_normal, ws_tangent));
+	mat3 tbn = mat3(ws_tangent, ws_bitangent, ws_normal);
+	return tbn * normalize(ls_normal);
+}
 
 void main()
 {
-	/* if not .UseVertexColoring */
-	vec4 colorInOut = vec4(1.0, 1.0, 1.0, 1.0);
-	/* end */
-
-	vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
-	float metallic = 0.0;
 	vec3 normal = normalize(normalInOut);
-	float roughness = 0.0;
+	vec4 color = colorInOut;
+	float metallic = 0.0;
+	float roughness = 1.0;
 
-	/*range $line := .CodeLines */
+	/* range $line := .CodeLines */
 	/* $line */
-	/*end*/
+	/* end */
 
 	fbColor0Out = vec4(color.xyz, metallic);
 	fbColor1Out = vec4(normal, roughness);

@@ -244,11 +244,11 @@ func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 	if identifier.Name == "#roughness" {
 		return "roughness"
 	}
+	if identifier.Name == "#normal" {
+		return "normal"
+	}
 	if identifier.Name == "#direction" {
 		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
-	}
-	if identifier.Name == "#normal" {
-		return "normalInOut" // TODO: varyingNormal
 	}
 	if identifier.Name == "#uv" || identifier.Name == "#vertexUV" {
 		return "texCoordInOut"
@@ -286,6 +286,8 @@ func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
 		return t.translateSinCall(call)
 	case "mix":
 		return t.translateMixCall(call)
+	case "mapNormal":
+		return t.translateMapNormalCall(call)
 	default:
 		panic(fmt.Errorf("unknown function call: %s", call.Name))
 	}
@@ -358,6 +360,21 @@ func (t *translator) translateMixCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[0]),
 			t.translateExpression(call.Arguments[1]),
 			t.translateExpression(call.Arguments[2]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateMapNormalCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameVec3, lsl.TypeNameFloat):
+		return fmt.Sprintf("mapNormal(%s, %s)",
+			t.translateExpression(call.Arguments[0]),
+			t.translateExpression(call.Arguments[1]),
 		)
 	default:
 		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
