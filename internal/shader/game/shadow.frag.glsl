@@ -1,4 +1,4 @@
-/*template "version.glsl"*/
+/* template "version.glsl" */
 
 void main()
 {
