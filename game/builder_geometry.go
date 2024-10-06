@@ -9,7 +9,6 @@ import (
 )
 
 func (b *shaderBuilder) BuildGeometryCode(constraints graphics.GeometryConstraints, shader *lsl.Shader) renderapi.ProgramCode {
-	// TODO: Verify matching varyings between vertex and fragment
 	return render.ProgramCode{
 		VertexCode:   b.buildGeometryVertexCode(constraints, shader),
 		FragmentCode: b.buildGeometryFragmentCode(constraints, shader),
@@ -19,8 +18,8 @@ func (b *shaderBuilder) BuildGeometryCode(constraints graphics.GeometryConstrain
 func (b *shaderBuilder) buildGeometryVertexCode(constraints graphics.GeometryConstraints, _ *lsl.Shader) string {
 	var settings struct {
 		UseArmature       bool
-		UseTangents       bool
 		UseNormals        bool
+		UseTangents       bool
 		UseTexCoords      bool
 		UseVertexColoring bool
 	}
@@ -30,26 +29,28 @@ func (b *shaderBuilder) buildGeometryVertexCode(constraints graphics.GeometryCon
 	if constraints.HasNormals {
 		settings.UseNormals = true
 	}
+	if constraints.HasTangents {
+		settings.UseTangents = true
+	}
 	if constraints.HasTexCoords {
 		settings.UseTexCoords = true
 	}
 	if constraints.HasVertexColors {
 		settings.UseVertexColoring = true
 	}
+
 	// TODO: Add support for varying
-
 	// TODO: Add support for position output
-
 	// TODO: Do actual shader translation
-	result := construct("custom_geometry.vert.glsl", settings)
-	// fmt.Println("Vertex code:\n", result)
-	return result
+
+	return construct("custom_geometry.vert.glsl", settings)
 }
 
 func (b *shaderBuilder) buildGeometryFragmentCode(constraints graphics.GeometryConstraints, shader *lsl.Shader) string {
 	var settings struct {
 		UseArmature       bool
 		UseNormals        bool
+		UseTangents       bool
 		UseTexCoords      bool
 		UseVertexColoring bool
 
@@ -66,6 +67,9 @@ func (b *shaderBuilder) buildGeometryFragmentCode(constraints graphics.GeometryC
 	if constraints.HasNormals {
 		settings.UseNormals = true
 	}
+	if constraints.HasTangents {
+		settings.UseTangents = true
+	}
 	if constraints.HasTexCoords {
 		settings.UseTexCoords = true
 	}
@@ -79,7 +83,5 @@ func (b *shaderBuilder) buildGeometryFragmentCode(constraints graphics.GeometryC
 	settings.VaryingLines = lines.VaryingLines
 	settings.CodeLines = lines.CodeLines
 
-	result := construct("custom_geometry.frag.glsl", settings)
-	// fmt.Println("Fragment code:\n", result)
-	return result
+	return construct("custom_geometry.frag.glsl", settings)
 }

@@ -1,3 +1,5 @@
+const vec3 dielectric_reflectance = vec3(0.04);
+
 // getScreenUVCoords returns the coordinates on the screen as though there is
 // a UV mapping on top (meaning {0.0, 0.0} bottom left and {1.0, 1.0} top right).
 vec2 getScreenUVCoords(vec4 viewport)
@@ -74,23 +76,24 @@ float calculate_distribution(DistributionInput i)
 {
 	i.roughness = clamp(i.roughness, 0.02, 1.0);
 	float alpha = i.roughness * i.roughness;
-	float alphaSqr = alpha * alpha;
-	float halfNormDot = clamp(dot(i.normal, i.half_dir), 0.0, 1.0);
-	float denom = clamp((halfNormDot * halfNormDot) * (alphaSqr - 1.0) + 1.0, 0.00001, 1.0);
-	return alphaSqr / (pi * denom * denom);
+	float alpha_sqr = alpha * alpha;
+	float half_dot_norm = clamp(dot(i.normal, i.half_dir), 0.0, 1.0);
+	float denom = max(0.001, (half_dot_norm * half_dot_norm) * (alpha_sqr - 1.0) + 1.0);
+	return alpha_sqr / (pi * denom * denom);
 }
 
-struct geometryInput
+struct GeometryInput
 {
 	vec3 normal;
 	vec3 viewDirection;
 	float roughness;
 };
 
-float calculateGeometry(geometryInput i)
+float calc_geometry(GeometryInput i)
 {
-	float normViewDot = clamp(dot(i.normal, i.viewDirection), 0.01, 1.0);
-	return normViewDot / (normViewDot * (1.0 - i.roughness) + i.roughness);
+	float k = (i.roughness + 1.0) * (i.roughness + 1.0) / 8.0;
+	float norm_dot_view = clamp(dot(i.normal, i.viewDirection), 0.3, 1.0);
+	return norm_dot_view / (norm_dot_view * (1.0 - k) + k);
 }
 
 struct directionalSetup
@@ -106,8 +109,10 @@ struct directionalSetup
 
 vec3 calculateDirectionalHDR(directionalSetup s)
 {
-	float norm_dot_view = clamp(dot(s.normal, s.viewDirection), 0.01, 1.0);
-	float norm_dot_light = clamp(dot(s.normal, s.lightDirection), 0.01, 1.0);
+	float norm_dot_view = dot(s.normal, s.viewDirection);
+	s.normal *= ((float(norm_dot_view > 0.0) * 2.0) - 1.0);
+
+	float norm_dot_light = clamp(dot(s.normal, s.lightDirection), 0.0, 1.0);
 
 	vec3 mid_vector = s.lightDirection + s.viewDirection;
 	bool is_zero_vector = all(lessThan(abs(mid_vector), vec3(0.001)));
@@ -116,7 +121,6 @@ vec3 calculateDirectionalHDR(directionalSetup s)
 	vec3 refracted_color = s.baseColor * (1.0 - s.metallic);
 	vec3 refraction_hdr = refracted_color / pi;
 
-	const vec3 dielectric_reflectance = vec3(0.03);
 	vec3 reflected_color = mix(dielectric_reflectance, s.baseColor, s.metallic);
 	vec3 fresnel = calculate_fresnel(FresnelInput(
 		reflected_color,
@@ -128,18 +132,18 @@ vec3 calculateDirectionalHDR(directionalSetup s)
 		half_dir,
 		s.roughness
 	));
-	float geom_view_factor = calculateGeometry(geometryInput(
+	float geom_view_factor = calc_geometry(GeometryInput(
 		s.normal,
 		s.viewDirection,
 		s.roughness
 	));
-	float geom_light_factor = calculateGeometry(geometryInput(
+	float geom_light_factor = calc_geometry(GeometryInput(
 		s.normal,
 		s.lightDirection,
 		s.roughness
 	));
 	float geom_factor = geom_view_factor * geom_light_factor;
-	float normalization_factor = 4.0 * norm_dot_view * norm_dot_light;
+	float normalization_factor = 2.0; // works best - avoids artifacts
 	vec3 reflection_hdr = vec3(distribution_factor * geom_factor / normalization_factor);
 
 	vec3 brdf = mix(refraction_hdr, reflection_hdr, fresnel);

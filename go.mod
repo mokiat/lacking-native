@@ -10,12 +10,12 @@ require (
 	github.com/mokiat/gblob v0.3.0
 	github.com/mokiat/gog v0.13.1
 	github.com/mokiat/gomath v0.9.0
-	github.com/mokiat/lacking v0.20.1
-	golang.org/x/image v0.20.0
+	github.com/mokiat/lacking v0.21.0
+	golang.org/x/image v0.21.0
 )
 
 require (
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/exp v0.0.0-20241004190924-225e2abe05e6 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )
