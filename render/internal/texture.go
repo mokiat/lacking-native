@@ -18,17 +18,25 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	levels := glMipmapLevels(info.Width, info.Height, info.GenerateMipmaps)
+	width := info.MipmapLayers[0].Width
+	height := info.MipmapLayers[0].Height
 	internalFormat := glInternalFormat(info.Format, info.GammaCorrection)
-	gl.TexStorage2D(gl.TEXTURE_2D, levels, internalFormat, int32(info.Width), int32(info.Height))
-
-	if info.Data != nil {
-		dataFormat := glDataFormat(info.Format)
-		componentType := glDataComponentType(info.Format)
-		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(info.Width), int32(info.Height), dataFormat, componentType, gl.Ptr(info.Data))
+	if levels := int32(len(info.MipmapLayers)); levels > 1 {
+		gl.TexStorage2D(gl.TEXTURE_2D, levels, internalFormat, int32(width), int32(height))
+	} else {
+		levels := glMipmapLevels(width, height, info.GenerateMipmaps)
+		gl.TexStorage2D(gl.TEXTURE_2D, levels, internalFormat, int32(width), int32(height))
 	}
 
-	if info.GenerateMipmaps {
+	dataFormat := glDataFormat(info.Format)
+	componentType := glDataComponentType(info.Format)
+	for i, mipmapLayer := range info.MipmapLayers {
+		if mipmapLayer.Data != nil {
+			gl.TexSubImage2D(gl.TEXTURE_2D, int32(i), 0, 0, int32(mipmapLayer.Width), int32(mipmapLayer.Height), dataFormat, componentType, gl.Ptr(&mipmapLayer.Data[0]))
+		}
+	}
+
+	if info.GenerateMipmaps && len(info.MipmapLayers) == 1 {
 		// TODO: Move as separate command
 		gl.GenerateMipmap(gl.TEXTURE_2D)
 	}
@@ -37,8 +45,8 @@ func NewColorTexture2D(info render.ColorTexture2DInfo) *Texture {
 		label:  info.Label,
 		id:     id,
 		kind:   gl.TEXTURE_2D,
-		width:  info.Width,
-		height: info.Height,
+		width:  width,
+		height: height,
 	}
 	textures.Track(id, result)
 	return result
@@ -169,32 +177,39 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	levels := glMipmapLevels(info.Dimension, info.Dimension, info.GenerateMipmaps)
+	dimension := info.MipmapLayers[0].Dimension
 	internalFormat := glInternalFormat(info.Format, info.GammaCorrection)
-	gl.TexStorage2D(gl.TEXTURE_CUBE_MAP, levels, internalFormat, int32(info.Dimension), int32(info.Dimension))
+	if levels := int32(len(info.MipmapLayers)); levels > 1 {
+		gl.TexStorage2D(gl.TEXTURE_CUBE_MAP, levels, internalFormat, int32(dimension), int32(dimension))
+	} else {
+		levels := glMipmapLevels(dimension, dimension, info.GenerateMipmaps)
+		gl.TexStorage2D(gl.TEXTURE_CUBE_MAP, levels, internalFormat, int32(dimension), int32(dimension))
+	}
 
 	dataFormat := glDataFormat(info.Format)
 	componentType := glDataComponentType(info.Format)
-	if info.RightSideData != nil {
-		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.RightSideData[0]))
-	}
-	if info.LeftSideData != nil {
-		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.LeftSideData[0]))
-	}
-	if info.BottomSideData != nil {
-		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.BottomSideData[0]))
-	}
-	if info.TopSideData != nil {
-		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.TopSideData[0]))
-	}
-	if info.FrontSideData != nil {
-		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.FrontSideData[0]))
-	}
-	if info.BackSideData != nil {
-		gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 0, 0, int32(info.Dimension), int32(info.Dimension), dataFormat, componentType, gl.Ptr(&info.BackSideData[0]))
+	for i, mipmapLayer := range info.MipmapLayers {
+		if mipmapLayer.RightSideData != nil {
+			gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, int32(i), 0, 0, int32(mipmapLayer.Dimension), int32(mipmapLayer.Dimension), dataFormat, componentType, gl.Ptr(&mipmapLayer.RightSideData[0]))
+		}
+		if mipmapLayer.LeftSideData != nil {
+			gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, int32(i), 0, 0, int32(mipmapLayer.Dimension), int32(mipmapLayer.Dimension), dataFormat, componentType, gl.Ptr(&mipmapLayer.LeftSideData[0]))
+		}
+		if mipmapLayer.BottomSideData != nil {
+			gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, int32(i), 0, 0, int32(mipmapLayer.Dimension), int32(mipmapLayer.Dimension), dataFormat, componentType, gl.Ptr(&mipmapLayer.BottomSideData[0]))
+		}
+		if mipmapLayer.TopSideData != nil {
+			gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, int32(i), 0, 0, int32(mipmapLayer.Dimension), int32(mipmapLayer.Dimension), dataFormat, componentType, gl.Ptr(&mipmapLayer.TopSideData[0]))
+		}
+		if mipmapLayer.FrontSideData != nil {
+			gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, int32(i), 0, 0, int32(mipmapLayer.Dimension), int32(mipmapLayer.Dimension), dataFormat, componentType, gl.Ptr(&mipmapLayer.FrontSideData[0]))
+		}
+		if mipmapLayer.BackSideData != nil {
+			gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, int32(i), 0, 0, int32(mipmapLayer.Dimension), int32(mipmapLayer.Dimension), dataFormat, componentType, gl.Ptr(&mipmapLayer.BackSideData[0]))
+		}
 	}
 
-	if info.GenerateMipmaps {
+	if info.GenerateMipmaps && len(info.MipmapLayers) == 1 {
 		// TODO: Move as separate command
 		gl.GenerateMipmap(gl.TEXTURE_CUBE_MAP)
 	}
@@ -203,9 +218,9 @@ func NewColorTextureCube(info render.ColorTextureCubeInfo) *Texture {
 		label:  info.Label,
 		id:     id,
 		kind:   gl.TEXTURE_CUBE_MAP,
-		width:  info.Dimension,
-		height: info.Dimension,
-		depth:  info.Dimension,
+		width:  dimension,
+		height: dimension,
+		depth:  dimension,
 	}
 	textures.Track(id, result)
 	return result

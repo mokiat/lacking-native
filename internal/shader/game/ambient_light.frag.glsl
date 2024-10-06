@@ -14,54 +14,54 @@ uniform samplerCube refractionTextureIn;
 
 /*template "lighting.glsl"*/
 
-struct ambientFresnelInput
+struct AmbientFresnelInput
 {
-	vec3 reflectanceF0;
+	vec3 reflectance_f0;
 	vec3 normal;
 	vec3 viewDirection;
 	float roughness;
 };
 
-vec3 calculateAmbientFresnel(ambientFresnelInput i)
+vec3 calc_fresnel_ambient(AmbientFresnelInput i)
 {
-	float normViewDot = clamp(dot(i.normal, i.viewDirection), 0.0, 1.0);
-	return i.reflectanceF0 + (max(vec3(1.0 - i.roughness), i.reflectanceF0) - i.reflectanceF0) * pow(1.0 - normViewDot, 5.0);
+	float norm_dot_view = min(abs(dot(i.normal, i.viewDirection)), 1.0);
+	return i.reflectance_f0 + (max(vec3(1.0 - i.roughness), i.reflectance_f0) - i.reflectance_f0) * pow(1.0 - norm_dot_view, 5.0);
 }
 
 struct ambientSetup {
+	vec3 baseColor;
+	float metallic;
 	float roughness;
-	vec3 reflectedColor;
-	vec3 refractedColor;
 	vec3 viewDirection;
 	vec3 normal;
 };
 
 vec3 calculateAmbientHDR(ambientSetup s)
 {
-	vec3 fresnel = calculateAmbientFresnel(ambientFresnelInput(
-		s.reflectedColor,
+	vec3 albedo = s.baseColor * (1.0 - s.metallic);
+	vec3 irradiance_light = texture(refractionTextureIn, -s.normal).xyz;
+	vec3 refraction_brdf = irradiance_light * (albedo / pi);
+
+	vec3 reflection_f0 = mix(dielectric_reflectance, s.baseColor, s.metallic);
+	vec3 fresnel = calc_fresnel_ambient(AmbientFresnelInput(
+		reflection_f0,
 		s.normal,
 		s.viewDirection,
 		s.roughness
 	));
-
-	vec3 lightDirection = reflect(s.viewDirection, s.normal);
-	vec3 reflectedLightIntensity = pow(mix(
-			pow(texture(refractionTextureIn, lightDirection) / (2.0 * pi), vec4(0.25)),
-			pow(texture(reflectionTextureIn, lightDirection), vec4(0.25)),
-			pow(1.0 - s.roughness, 4.0)
-		), vec4(4.0)).xyz;
-	float geometry = calculateGeometry(geometryInput(
+	vec3 light_dir = reflect(-s.viewDirection, s.normal);
+	float max_lod = log2(float(textureSize(reflectionTextureIn, 0).x)) - 1.0;
+	float alpha = s.roughness * s.roughness;
+	vec3 reflected_light = textureLod(reflectionTextureIn, -light_dir, alpha * max_lod).xyz / (2.0 * pi);
+	float geometry = calc_geometry(GeometryInput(
 		s.normal,
 		s.viewDirection,
 		s.roughness
 	));
-	vec3 reflectedHDR = fresnel * s.reflectedColor * reflectedLightIntensity * geometry;
+	float normalization_factor = 1.0; // works best
+	vec3 reflection_brdf = reflected_light * geometry / normalization_factor;
 
-	vec3 refractedLightIntensity = texture(refractionTextureIn, -s.normal).xyz;
-	vec3 refractedHDR = (vec3(1.0) - fresnel) * s.refractedColor * refractedLightIntensity / (2.0 * pi);
-
-	return (reflectedHDR + refractedHDR);
+	return mix(refraction_brdf, reflection_brdf, fresnel);
 }
 
 void main()
@@ -79,13 +79,10 @@ void main()
 	float metalness = albedoMetalness.w;
 	float roughness = normalRoughness.w;
 
-	vec3 refractedColor = baseColor * (1.0 - metalness);
-	vec3 reflectedColor = mix(vec3(0.02), baseColor, metalness);
-
 	vec3 hdr = calculateAmbientHDR(ambientSetup(
+		baseColor,
+		metalness,
 		roughness,
-		reflectedColor,
-		refractedColor,
 		normalize(cameraPosition - worldPosition),
 		normal
 	));
