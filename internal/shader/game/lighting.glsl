@@ -109,6 +109,9 @@ struct directionalSetup
 
 vec3 calculateDirectionalHDR(directionalSetup s)
 {
+	float norm_dot_view = dot(s.normal, s.viewDirection);
+	s.normal *= ((float(norm_dot_view > 0.0) * 2.0) - 1.0);
+
 	float norm_dot_light = clamp(dot(s.normal, s.lightDirection), 0.0, 1.0);
 
 	vec3 mid_vector = s.lightDirection + s.viewDirection;
