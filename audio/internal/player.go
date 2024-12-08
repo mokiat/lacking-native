@@ -106,7 +106,7 @@ func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
 		media: media,
 
 		loop: info.Loop,
-		gain: float32(info.Gain),
+		gain: float32(info.Gain.ValueOrDefault(1.0)),
 		pan:  float32(info.Pan),
 
 		offset: 0,
