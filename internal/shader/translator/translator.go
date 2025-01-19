@@ -286,6 +286,12 @@ func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
 		return t.translateSinCall(call)
 	case "mix":
 		return t.translateMixCall(call)
+	case "floor":
+		return t.translateFloorCall(call)
+	case "round":
+		return t.translateRoundCall(call)
+	case "smoothstep":
+		return t.translateSmoothstepCall(call)
 	case "mapNormal":
 		return t.translateMapNormalCall(call)
 	default:
@@ -357,6 +363,53 @@ func (t *translator) translateMixCall(call *lsl.FunctionCall) string {
 	switch {
 	case isArgumentTypes(lsl.TypeNameFloat, lsl.TypeNameFloat, lsl.TypeNameFloat):
 		return fmt.Sprintf("mix(%s, %s, %s)",
+			t.translateExpression(call.Arguments[0]),
+			t.translateExpression(call.Arguments[1]),
+			t.translateExpression(call.Arguments[2]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateFloorCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	// TODO: Handle other overloads
+	case isArgumentTypes(lsl.TypeNameFloat):
+		return fmt.Sprintf("floor(%s)",
+			t.translateExpression(call.Arguments[0]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateRoundCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	// TODO: Handle other overloads
+	case isArgumentTypes(lsl.TypeNameFloat):
+		return fmt.Sprintf("round(%s)",
+			t.translateExpression(call.Arguments[0]),
+		)
+	default:
+		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+	}
+}
+
+func (t *translator) translateSmoothstepCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	// TODO: Handle other overloads
+	case isArgumentTypes(lsl.TypeNameFloat, lsl.TypeNameFloat, lsl.TypeNameFloat):
+		return fmt.Sprintf("smoothstep(%s, %s, %s)",
 			t.translateExpression(call.Arguments[0]),
 			t.translateExpression(call.Arguments[1]),
 			t.translateExpression(call.Arguments[2]),
