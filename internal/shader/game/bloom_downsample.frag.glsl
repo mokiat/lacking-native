@@ -15,7 +15,9 @@ void main()
 {
 	vec3 sourceHDR = texture(lackingSourceImage, texCoordInOut).xyz;
 	float brightness = rgbToBrightness(sourceHDR);
-	// TODO: Configurable range.
-	vec3 targetHDR = smoothstep(5.0, 10.0, brightness) * sourceHDR;
-	fbColor0Out = vec4(targetHDR, 1.0);
+	// TODO: Make ranges configurable.
+	const float lower = 5.0;
+	const float upper = 100.0;
+	float amount = smoothstep(lower, upper, brightness) / lower;
+	fbColor0Out = vec4(sourceHDR * amount, 1.0);
 }
