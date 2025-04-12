@@ -112,6 +112,8 @@ func (q *Queue) ReadBuffer(buffer render.Buffer, offset uint32, target []byte) {
 }
 
 func (q *Queue) Submit(commands render.CommandBuffer) {
+	defer trackError("Error during command buffer submit", commands.Label())
+
 	commandBuffer := commands.(*CommandBuffer)
 	for commandBuffer.HasMoreCommands() {
 		header := readCommandChunk[CommandHeader](commandBuffer)

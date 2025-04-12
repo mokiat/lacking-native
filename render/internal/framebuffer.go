@@ -1,14 +1,14 @@
 package internal
 
 import (
+	"log/slog"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/mokiat/lacking/render"
 )
 
 func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
-	if glLogger.IsDebugEnabled() {
-		defer trackError("Error creating framebuffer (%v)", info.Label)()
-	}
+	defer trackError("Error creating framebuffer", info.Label)()
 
 	var id uint32
 	gl.GenFramebuffers(1, &id)
@@ -73,7 +73,7 @@ func NewFramebuffer(info render.FramebufferInfo) *Framebuffer {
 
 	status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if status != gl.FRAMEBUFFER_COMPLETE {
-		logger.Error("Framebuffer (%v) is incomplete", info.Label)
+		logger.Error("Framebuffer is incomplete", slog.String("label", info.Label))
 	}
 
 	result := &Framebuffer{

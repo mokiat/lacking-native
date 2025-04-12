@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"log/slog"
 	"runtime"
 	"strings"
 
@@ -18,9 +19,7 @@ type ProgramInfo struct {
 }
 
 func NewProgram(info ProgramInfo) *Program {
-	if glLogger.IsDebugEnabled() {
-		defer trackError("Error creating program (%v)", info.Label)()
-	}
+	defer trackError("Error creating program", info.Label)()
 
 	vertexShader := newVertexShader(info.Label, info.VertexCode)
 	defer vertexShader.Release()
@@ -39,7 +38,10 @@ func NewProgram(info ProgramInfo) *Program {
 	defer gl.DetachShader(program.id, fragmentShader.id)
 
 	if err := program.link(); err != nil {
-		logger.Error("Program (%v) link error: %v", info.Label, err)
+		logger.Error("Program link error",
+			slog.String("label", info.Label),
+			slog.String("error", err.Error()),
+		)
 	}
 
 	if len(info.TextureBindings) > 0 {

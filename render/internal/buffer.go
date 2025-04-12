@@ -6,23 +6,17 @@ import (
 )
 
 func NewVertexBuffer(info render.BufferInfo) *Buffer {
-	if glLogger.IsDebugEnabled() {
-		defer trackError("Error creating vertex buffer (%v)", info.Label)()
-	}
+	defer trackError("Error creating vertex buffer", info.Label)()
 	return newBuffer(info, gl.ARRAY_BUFFER)
 }
 
 func NewIndexBuffer(info render.BufferInfo) *Buffer {
-	if glLogger.IsDebugEnabled() {
-		defer trackError("Error creating index buffer (%v)", info.Label)()
-	}
+	defer trackError("Error creating index buffer", info.Label)()
 	return newBuffer(info, gl.ELEMENT_ARRAY_BUFFER)
 }
 
 func NewPixelTransferBuffer(info render.BufferInfo) render.Buffer {
-	if glLogger.IsDebugEnabled() {
-		defer trackError("Error creating pixel transfer buffer (%v)", info.Label)()
-	}
+	defer trackError("Error creating pixel transfer buffer", info.Label)()
 
 	var id uint32
 	gl.GenBuffers(1, &id)
@@ -39,9 +33,7 @@ func NewPixelTransferBuffer(info render.BufferInfo) render.Buffer {
 }
 
 func NewUniformBuffer(info render.BufferInfo) render.Buffer {
-	if glLogger.IsDebugEnabled() {
-		defer trackError("Error creating uniform buffer (%v)", info.Label)()
-	}
+	defer trackError("Error creating uniform buffer", info.Label)()
 	return newBuffer(info, gl.UNIFORM_BUFFER)
 }
 

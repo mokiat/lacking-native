@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -9,7 +10,6 @@ import (
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/audio"
-	"github.com/mokiat/lacking/debug/log"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/util/resource"
@@ -26,7 +26,7 @@ func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, co
 		var err error
 		audioAPI, err = nativeaudio.NewAPI()
 		if err != nil {
-			log.Error("Failed to initialize audio: %v", err)
+			logger.Error("Failed to initialize audio", slog.String("error", err.Error()))
 			audioAPI = nil
 		}
 	}

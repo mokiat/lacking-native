@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log/slog"
 	"sync"
 
 	"github.com/gen2brain/malgo"
 	"github.com/hajimehoshi/go-mp3"
 	"github.com/mokiat/gblob"
 	"github.com/mokiat/lacking/audio"
-	"github.com/mokiat/lacking/debug/log"
 )
 
 func NewPlayer() (*Player, error) {
@@ -59,19 +59,25 @@ type Player struct {
 func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
 	decoder, err := mp3.NewDecoder(bytes.NewReader(info.Data))
 	if err != nil {
-		log.Error("Error creating decoder: %v", err)
+		logger.Error("Error creating decoder",
+			slog.String("error", err.Error()),
+		)
 		return nil
 	}
 
 	if decoder.SampleRate() != 44100 {
 		//  TODO: Handle resample in the future.
-		log.Error("Unsupported sample rate: %d", decoder.SampleRate())
+		logger.Error("Unsupported sample rate",
+			slog.Int("rate", decoder.SampleRate()),
+		)
 		return nil
 	}
 
 	data, err := io.ReadAll(decoder)
 	if err != nil {
-		log.Error("Error reading decoder: %v", err)
+		logger.Error("Error reading decoder",
+			slog.String("error", err.Error()),
+		)
 		return nil
 	}
 	buffer := gblob.LittleEndianBlock(data)
