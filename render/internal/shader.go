@@ -16,6 +16,7 @@ func newVertexShader(programLabel, sourceCode string) *Shader {
 	shader.setSourceCode(sourceCode)
 	if err := shader.compile(); err != nil {
 		logger.Error("Vertex shader compilation error",
+			slog.String("code", sourceCode),
 			slog.String("label", programLabel),
 			slog.String("error", err.Error()),
 		)
@@ -30,6 +31,7 @@ func newFragmentShader(programLabel, sourceCode string) *Shader {
 	shader.setSourceCode(sourceCode)
 	if err := shader.compile(); err != nil {
 		logger.Error("Fragment shader compilation error",
+			slog.String("code", sourceCode),
 			slog.String("label", programLabel),
 			slog.String("error", err.Error()),
 		)

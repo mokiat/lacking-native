@@ -164,13 +164,13 @@ func (t *translator) translateConditional(conditional *lsl.Conditional) {
 	for _, statement := range conditional.Then {
 		t.translateStatement(statement)
 	}
-	switch {
-	case conditional.ElseIf != nil:
+	switch elseStmt := conditional.Else.(type) {
+	case *lsl.Conditional:
 		t.codeLines = append(t.codeLines, "} else")
-		t.translateConditional(conditional.ElseIf) // TODO: Verify if this works, since it puts it on a new line
-	case conditional.Else != nil:
+		t.translateConditional(elseStmt) // TODO: Verify if this works, since it puts it on a new line
+	case lsl.StatementList:
 		t.codeLines = append(t.codeLines, "} else {")
-		for _, statement := range conditional.Else {
+		for _, statement := range elseStmt {
 			t.translateStatement(statement)
 		}
 		t.codeLines = append(t.codeLines, "}")
@@ -263,11 +263,9 @@ func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 }
 
 func (t *translator) translateFieldIdentifier(identifier *lsl.FieldIdentifier) string {
-	obj := t.translateIdentifier(&lsl.Identifier{
-		Name: identifier.ObjName,
-	})
-	field := identifier.FieldName
-	return fmt.Sprintf("%s.%s", obj, field)
+	owner := t.translateExpression(identifier.Owner)
+	field := identifier.Field.Name
+	return fmt.Sprintf("%s.%s", owner, field)
 }
 
 func (t *translator) translateFloatLiteral(literal *lsl.FloatLiteral) string {
@@ -275,7 +273,8 @@ func (t *translator) translateFloatLiteral(literal *lsl.FloatLiteral) string {
 }
 
 func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
-	switch call.Name {
+	identifier := call.Owner.(*lsl.Identifier)
+	switch identifier.Name {
 	case "sample":
 		return t.translateTextureCall(call)
 	case "rgb":
@@ -295,7 +294,7 @@ func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
 	case "mapNormal":
 		return t.translateMapNormalCall(call)
 	default:
-		panic(fmt.Errorf("unknown function call: %s", call.Name))
+		panic(fmt.Errorf("unknown function call: %s", identifier.Name))
 	}
 }
 
@@ -310,7 +309,7 @@ func (t *translator) translateTextureCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[1]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown texture call overload"))
 	}
 }
 
@@ -324,7 +323,7 @@ func (t *translator) translateRGBCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[0]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown rgb call overload"))
 	}
 }
 
@@ -338,7 +337,7 @@ func (t *translator) translateCosCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[0]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown cos call overload"))
 	}
 }
 
@@ -352,7 +351,7 @@ func (t *translator) translateSinCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[0]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown sin call overload"))
 	}
 }
 
@@ -368,7 +367,7 @@ func (t *translator) translateMixCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[2]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown mix call"))
 	}
 }
 
@@ -383,7 +382,7 @@ func (t *translator) translateFloorCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[0]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown floor call overload"))
 	}
 }
 
@@ -398,7 +397,7 @@ func (t *translator) translateRoundCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[0]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown round call overload"))
 	}
 }
 
@@ -415,7 +414,7 @@ func (t *translator) translateSmoothstepCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[2]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown smoothstep call overload"))
 	}
 }
 
@@ -430,7 +429,7 @@ func (t *translator) translateMapNormalCall(call *lsl.FunctionCall) string {
 			t.translateExpression(call.Arguments[1]),
 		)
 	default:
-		panic(fmt.Errorf("unknown texture call overload: %s", call.Name))
+		panic(fmt.Errorf("unknown mapNormal call overload"))
 	}
 }
 
