@@ -1,7 +1,4 @@
-// We optimize by using vertex coords as cube texture coords.
-// Additionally, we need to flip the coords. OpenGL uses renderman coordinate
-// system for cube maps, contrary to the rest of the OpenGL API.
-varyingDirection = -attrCoord.xyz;
+varyingDirection = attrCoord.xyz;
 
 // ensure that translations are ignored by setting w to 0.0
 vec4 viewPosition = viewMatrixIn * vec4(attrCoord.xyz, 0.0);
