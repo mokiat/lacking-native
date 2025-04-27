@@ -214,6 +214,8 @@ func (t *translator) translateExpression(expression lsl.Expression) string {
 		return t.translateFieldIdentifier(expr)
 	case *lsl.FunctionCall:
 		return t.translateFunctionCall(expr)
+	case *lsl.UnaryExpression:
+		return t.translateUnaryExpression(expr)
 	case *lsl.BinaryExpression:
 		return t.translateBinaryExpression(expr)
 	case *lsl.FloatLiteral:
@@ -221,6 +223,12 @@ func (t *translator) translateExpression(expression lsl.Expression) string {
 	default:
 		panic(fmt.Errorf("unknown expression type: %T", expression))
 	}
+}
+
+func (t *translator) translateUnaryExpression(expression *lsl.UnaryExpression) string {
+	operator := t.translateOperator(expression.Operator)
+	operand := t.translateExpression(expression.Operand)
+	return fmt.Sprintf("%s%s", operator, operand)
 }
 
 func (t *translator) translateBinaryExpression(expression *lsl.BinaryExpression) string {
@@ -246,6 +254,9 @@ func (t *translator) translateIdentifier(identifier *lsl.Identifier) string {
 	}
 	if identifier.Name == "#normal" {
 		return "normal"
+	}
+	if identifier.Name == "#rayDirectionWS" {
+		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
 	}
 	if identifier.Name == "#direction" {
 		return "varyingDirection" // FIXME: Should be handled by the sky shader rewriter
@@ -285,6 +296,8 @@ func (t *translator) translateFunctionCall(call *lsl.FunctionCall) string {
 		return t.translateSinCall(call)
 	case "mix":
 		return t.translateMixCall(call)
+	case "clamp":
+		return t.translateClampCall(call)
 	case "floor":
 		return t.translateFloorCall(call)
 	case "round":
@@ -368,6 +381,22 @@ func (t *translator) translateMixCall(call *lsl.FunctionCall) string {
 		)
 	default:
 		panic(fmt.Errorf("unknown mix call"))
+	}
+}
+
+func (t *translator) translateClampCall(call *lsl.FunctionCall) string {
+	isArgumentTypes := func(_ ...string) bool {
+		return true // FIXME
+	}
+	switch {
+	case isArgumentTypes(lsl.TypeNameFloat, lsl.TypeNameFloat, lsl.TypeNameFloat):
+		return fmt.Sprintf("clamp(%s, %s, %s)",
+			t.translateExpression(call.Arguments[0]),
+			t.translateExpression(call.Arguments[1]),
+			t.translateExpression(call.Arguments[2]),
+		)
+	default:
+		panic(fmt.Errorf("unknown clamp call"))
 	}
 }
 
