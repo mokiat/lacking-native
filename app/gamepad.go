@@ -260,3 +260,10 @@ func deadzoneValue(value, deadzone float64) float64 {
 		return value / (1.0 - deadzone)
 	}
 }
+
+type gamepadState struct {
+	connected             bool
+	gamepadStickValues    [app.GamepadStickCount][2]float64
+	gamepadButtonPressed  [app.GamepadButtonCount]bool
+	gamepadButtonCooldown [app.GamepadButtonCount]time.Duration
+}
