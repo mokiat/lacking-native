@@ -472,8 +472,8 @@ func (l *loop) updateGamepad(index int, gamepad *Gamepad, elapsedTime time.Durat
 	var newButtonPressed [app.GamepadButtonCount]bool
 	newButtonPressed[app.GamepadButtonLeftStick] = gamepad.LeftStickButton()
 	newButtonPressed[app.GamepadButtonRightStick] = gamepad.RightStickButton()
-	newButtonPressed[app.GamepadButtonLeftTrigger] = gamepad.LeftTrigger() > 0.0
-	newButtonPressed[app.GamepadButtonRightTrigger] = gamepad.RightTrigger() > 0.0
+	newButtonPressed[app.GamepadButtonLeftTrigger] = gamepad.LeftTrigger() > 0.5
+	newButtonPressed[app.GamepadButtonRightTrigger] = gamepad.RightTrigger() > 0.5
 	newButtonPressed[app.GamepadButtonLeftBumper] = gamepad.LeftBumper()
 	newButtonPressed[app.GamepadButtonRightBumper] = gamepad.RightBumper()
 	newButtonPressed[app.GamepadButtonDpadUp] = gamepad.DpadUpButton()
@@ -486,6 +486,14 @@ func (l *loop) updateGamepad(index int, gamepad *Gamepad, elapsedTime time.Durat
 	newButtonPressed[app.GamepadButtonActionRight] = gamepad.ActionRightButton()
 	newButtonPressed[app.GamepadButtonForward] = gamepad.ForwardButton()
 	newButtonPressed[app.GamepadButtonBack] = gamepad.BackButton()
+	newButtonPressed[app.GamepadButtonLeftStickUp] = gamepad.LeftStickY() < -0.5
+	newButtonPressed[app.GamepadButtonLeftStickDown] = gamepad.LeftStickY() > 0.5
+	newButtonPressed[app.GamepadButtonLeftStickLeft] = gamepad.LeftStickX() < -0.5
+	newButtonPressed[app.GamepadButtonLeftStickRight] = gamepad.LeftStickX() > 0.5
+	newButtonPressed[app.GamepadButtonRightStickUp] = gamepad.RightStickY() < -0.5
+	newButtonPressed[app.GamepadButtonRightStickDown] = gamepad.RightStickY() > 0.5
+	newButtonPressed[app.GamepadButtonRightStickLeft] = gamepad.RightStickX() < -0.5
+	newButtonPressed[app.GamepadButtonRightStickRight] = gamepad.RightStickX() > 0.5
 	for button, pressed := range newButtonPressed {
 		state.gamepadButtonCooldown[button] -= elapsedTime
 		oldPressed := state.gamepadButtonPressed[button]
