@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"image"
 	"runtime"
-	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"github.com/mokiat/lacking/app"
+	_ "github.com/mokiat/lacking/debug/log" // for side effects
 )
 
 // Run starts a new application and opens a single window.
@@ -88,22 +88,6 @@ func Run(cfg *Config, controller app.Controller) error {
 
 	if err := gl.Init(); err != nil {
 		return fmt.Errorf("failed to initialize opengl: %w", err)
-	}
-
-	if glLogger.IsDebugEnabled() {
-		gl.Enable(gl.DEBUG_OUTPUT)
-		gl.DebugMessageCallback(func(source uint32, gltype uint32, id uint32, severity uint32, length int32, message string, userParam unsafe.Pointer) {
-			switch severity {
-			case gl.DEBUG_SEVERITY_LOW:
-				glLogger.Debug(message)
-			case gl.DEBUG_SEVERITY_MEDIUM:
-				glLogger.Warn(message)
-			case gl.DEBUG_SEVERITY_HIGH:
-				glLogger.Error(message)
-			default:
-				glLogger.Debug(message)
-			}
-		}, gl.PtrOffset(0))
 	}
 
 	l := newLoop(cfg.locator, cfg.title, window, controller, cfg.audioEnabled)

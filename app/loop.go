@@ -2,14 +2,15 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/mokiat/gomath/dprec"
 	nativeaudio "github.com/mokiat/lacking-native/audio"
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/audio"
-	"github.com/mokiat/lacking/debug/log"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/util/resource"
@@ -26,7 +27,7 @@ func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, co
 		var err error
 		audioAPI, err = nativeaudio.NewAPI()
 		if err != nil {
-			log.Error("Failed to initialize audio: %v", err)
+			logger.Error("Failed to initialize audio", slog.String("error", err.Error()))
 			audioAPI = nil
 		}
 	}
@@ -50,26 +51,30 @@ func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, co
 			newGamepad(glfw.Joystick3),
 			newGamepad(glfw.Joystick4),
 		},
+		gamepadStates:     [4]gamepadState{},
+		lastGamepadUpdate: time.Now(),
 	}
 }
 
 var _ app.Window = (*loop)(nil)
 
 type loop struct {
-	platform      *platform
-	locator       resource.ReadLocator
-	title         string
-	window        *glfw.Window
-	controller    app.Controller
-	renderAPI     render.API
-	audioAPI      *nativeaudio.API
-	tasks         chan func()
-	shouldStop    bool
-	shouldDraw    bool
-	shouldWake    bool
-	cursorVisible bool
-	cursorLocked  bool
-	gamepads      [4]*Gamepad
+	platform          *platform
+	locator           resource.ReadLocator
+	title             string
+	window            *glfw.Window
+	controller        app.Controller
+	renderAPI         render.API
+	audioAPI          *nativeaudio.API
+	tasks             chan func()
+	shouldStop        bool
+	shouldDraw        bool
+	shouldWake        bool
+	cursorVisible     bool
+	cursorLocked      bool
+	gamepads          [4]*Gamepad
+	gamepadStates     [4]gamepadState
+	lastGamepadUpdate time.Time
 }
 
 func (l *loop) Run() error {
@@ -99,9 +104,10 @@ func (l *loop) Run() error {
 	l.window.SetDropCallback(l.onGLFWMouseDrop)
 
 	for !l.shouldStop {
-		if l.shouldWake {
+		if l.shouldWake || time.Since(l.lastGamepadUpdate) > time.Second {
 			l.shouldWake = false
 			glfw.PollEvents()
+			l.updateGamepads()
 		} else {
 			glfw.WaitEvents()
 		}
@@ -401,4 +407,123 @@ func (l *loop) onGLFWMouseDrop(w *glfw.Window, names []string) {
 			Paths: names,
 		},
 	})
+}
+
+func (l *loop) updateGamepads() {
+	elapsedTime := time.Since(l.lastGamepadUpdate)
+	for i, gamepad := range l.gamepads {
+		l.updateGamepad(i, gamepad, elapsedTime)
+	}
+	l.lastGamepadUpdate = time.Now()
+}
+
+func (l *loop) updateGamepad(index int, gamepad *Gamepad, elapsedTime time.Duration) {
+	state := &l.gamepadStates[index]
+
+	connected := gamepad.Connected()
+	switch {
+	case connected && !state.connected:
+		l.controller.OnGamepadEvent(l, app.GamepadEvent{
+			Index:   index,
+			Gamepad: gamepad,
+			Action:  app.GamepadActionConnected,
+		})
+	case !connected && state.connected:
+		l.controller.OnGamepadEvent(l, app.GamepadEvent{
+			Index:   index,
+			Gamepad: gamepad,
+			Action:  app.GamepadActionDisconnected,
+		})
+	}
+	state.connected = connected
+
+	var newStickValues [app.GamepadStickCount][2]float64
+	newStickValues[app.GamepadStickLeft] = [2]float64{
+		gamepad.LeftStickX(),
+		gamepad.LeftStickY(),
+	}
+	newStickValues[app.GamepadStickRight] = [2]float64{
+		gamepad.RightStickX(),
+		gamepad.RightStickY(),
+	}
+	newStickValues[app.GamepadStickLeftTrigger] = [2]float64{
+		0.0,
+		gamepad.LeftTrigger(),
+	}
+	newStickValues[app.GamepadStickRightTrigger] = [2]float64{
+		0.0,
+		gamepad.RightTrigger(),
+	}
+	for stick, stickValue := range newStickValues {
+		oldStickValue := state.gamepadStickValues[stick]
+		if !dprec.Eq(stickValue[0], oldStickValue[0]) || !dprec.Eq(stickValue[1], oldStickValue[1]) {
+			l.controller.OnGamepadEvent(l, app.GamepadEvent{
+				Index:   index,
+				Gamepad: gamepad,
+				Action:  app.GamepadActionStickMove,
+				Stick:   app.GamepadStick(stick),
+				X:       stickValue[0],
+				Y:       stickValue[1],
+			})
+		}
+		state.gamepadStickValues[stick] = stickValue
+	}
+
+	var newButtonPressed [app.GamepadButtonCount]bool
+	newButtonPressed[app.GamepadButtonLeftStick] = gamepad.LeftStickButton()
+	newButtonPressed[app.GamepadButtonRightStick] = gamepad.RightStickButton()
+	newButtonPressed[app.GamepadButtonLeftTrigger] = gamepad.LeftTrigger() > 0.5
+	newButtonPressed[app.GamepadButtonRightTrigger] = gamepad.RightTrigger() > 0.5
+	newButtonPressed[app.GamepadButtonLeftBumper] = gamepad.LeftBumper()
+	newButtonPressed[app.GamepadButtonRightBumper] = gamepad.RightBumper()
+	newButtonPressed[app.GamepadButtonDpadUp] = gamepad.DpadUpButton()
+	newButtonPressed[app.GamepadButtonDpadDown] = gamepad.DpadDownButton()
+	newButtonPressed[app.GamepadButtonDpadLeft] = gamepad.DpadLeftButton()
+	newButtonPressed[app.GamepadButtonDpadRight] = gamepad.DpadRightButton()
+	newButtonPressed[app.GamepadButtonActionUp] = gamepad.ActionUpButton()
+	newButtonPressed[app.GamepadButtonActionDown] = gamepad.ActionDownButton()
+	newButtonPressed[app.GamepadButtonActionLeft] = gamepad.ActionLeftButton()
+	newButtonPressed[app.GamepadButtonActionRight] = gamepad.ActionRightButton()
+	newButtonPressed[app.GamepadButtonForward] = gamepad.ForwardButton()
+	newButtonPressed[app.GamepadButtonBack] = gamepad.BackButton()
+	newButtonPressed[app.GamepadButtonLeftStickUp] = gamepad.LeftStickY() < -0.5
+	newButtonPressed[app.GamepadButtonLeftStickDown] = gamepad.LeftStickY() > 0.5
+	newButtonPressed[app.GamepadButtonLeftStickLeft] = gamepad.LeftStickX() < -0.5
+	newButtonPressed[app.GamepadButtonLeftStickRight] = gamepad.LeftStickX() > 0.5
+	newButtonPressed[app.GamepadButtonRightStickUp] = gamepad.RightStickY() < -0.5
+	newButtonPressed[app.GamepadButtonRightStickDown] = gamepad.RightStickY() > 0.5
+	newButtonPressed[app.GamepadButtonRightStickLeft] = gamepad.RightStickX() < -0.5
+	newButtonPressed[app.GamepadButtonRightStickRight] = gamepad.RightStickX() > 0.5
+	for button, pressed := range newButtonPressed {
+		state.gamepadButtonCooldown[button] -= elapsedTime
+		oldPressed := state.gamepadButtonPressed[button]
+		switch {
+		case oldPressed && pressed:
+			if state.gamepadButtonCooldown[button] <= 0 {
+				state.gamepadButtonCooldown[button] = app.GamepadRepeatInterval
+				l.controller.OnGamepadEvent(l, app.GamepadEvent{
+					Index:   index,
+					Gamepad: gamepad,
+					Action:  app.GamepadActionButtonRepeat,
+					Button:  app.GamepadButton(button),
+				})
+			}
+		case !oldPressed && pressed:
+			state.gamepadButtonCooldown[button] = app.GamepadRepeatDelay
+			l.controller.OnGamepadEvent(l, app.GamepadEvent{
+				Index:   index,
+				Gamepad: gamepad,
+				Action:  app.GamepadActionButtonDown,
+				Button:  app.GamepadButton(button),
+			})
+		case oldPressed && !pressed:
+			l.controller.OnGamepadEvent(l, app.GamepadEvent{
+				Index:   index,
+				Gamepad: gamepad,
+				Action:  app.GamepadActionButtonUp,
+				Button:  app.GamepadButton(button),
+			})
+		}
+		state.gamepadButtonPressed[button] = pressed
+	}
 }

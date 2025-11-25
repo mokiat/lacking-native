@@ -2,26 +2,33 @@ package internal
 
 import (
 	"fmt"
+	"log/slog"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/mokiat/lacking/render"
 )
 
-func NewCommandBuffer(initialCapacity uint) *CommandBuffer {
+func NewCommandBuffer(info render.CommandBufferInfo) *CommandBuffer {
 	return &CommandBuffer{
-		data: make([]byte, max(1024, initialCapacity)),
+		label: info.Label,
+		data:  make([]byte, max(1024, info.InitialCapacity)),
 	}
 }
 
 type CommandBuffer struct {
 	render.CommandBufferMarker
 
+	label       string
 	data        []byte
 	writeOffset uintptr
 	readOffset  uintptr
 
 	isRenderPassActive bool
+}
+
+func (b *CommandBuffer) Label() string {
+	return b.label
 }
 
 func (b *CommandBuffer) HasMoreCommands() bool {
@@ -245,7 +252,9 @@ func (b *CommandBuffer) ensure(size int) {
 	requiredSize := int(b.writeOffset) + size
 	currentSize := len(b.data)
 	if requiredSize > currentSize {
-		logger.Warn("Command buffer capacity reached! Will grow to accomodate %d bytes.", requiredSize)
+		logger.Warn("Command buffer capacity reached - will grow",
+			slog.Int("size", requiredSize),
+		)
 		newSize := currentSize * 2
 		for newSize < requiredSize {
 			newSize *= 2

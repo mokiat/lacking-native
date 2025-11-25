@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"log/slog"
 	"runtime"
 	"strings"
 
@@ -14,7 +15,11 @@ func newVertexShader(programLabel, sourceCode string) *Shader {
 	}
 	shader.setSourceCode(sourceCode)
 	if err := shader.compile(); err != nil {
-		logger.Error("Vertex shader (%v) compilation error: %v", programLabel, err)
+		logger.Error("Vertex shader compilation error",
+			slog.String("code", sourceCode),
+			slog.String("label", programLabel),
+			slog.String("error", err.Error()),
+		)
 	}
 	return shader
 }
@@ -25,7 +30,11 @@ func newFragmentShader(programLabel, sourceCode string) *Shader {
 	}
 	shader.setSourceCode(sourceCode)
 	if err := shader.compile(); err != nil {
-		logger.Error("Fragment shader (%v) compilation error: %v", programLabel, err)
+		logger.Error("Fragment shader compilation error",
+			slog.String("code", sourceCode),
+			slog.String("label", programLabel),
+			slog.String("error", err.Error()),
+		)
 	}
 	return shader
 }
