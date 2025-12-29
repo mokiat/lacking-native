@@ -13,9 +13,15 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewPlayer() (*Player, error) {
+func NewPlayer(graph *Graph) (*Player, error) {
+	output := newOutputNode()
+	graph.Register(output)
+
 	player := &Player{
 		playbacks: make(map[*Playback]struct{}),
+		output:    output,
+		buffer:    newBuffer(1024 * 1024), // 1 MiB buffer
+		graph:     graph,
 	}
 
 	ctx, err := malgo.InitContext(nil, malgo.ContextConfig{}, nil)
@@ -54,6 +60,12 @@ type Player struct {
 
 	playbackMU sync.Mutex
 	playbacks  map[*Playback]struct{}
+
+	buffer *Buffer
+	graph  *Graph
+	output *OutputNode
+
+	inputCache []FrameList
 }
 
 func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
@@ -98,26 +110,33 @@ func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
 
 	return &Media{
 		sampleRate:   44100,
-		length:       length,
+		length:       uint64(length),
 		leftChannel:  leftChannel,
 		rightChannel: rightChannel,
 	}
 }
 
 func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
-	p.playbackMU.Lock()
-	defer p.playbackMU.Unlock()
+	srcNode := p.CreatePlayback(media, info.Loop)
+	panNode := p.CreatePan()
+	panNode.SetPan(float32(info.Pan))
+	gainNode := p.CreateGain()
+	gainNode.SetGain(float32(info.Gain.ValueOrDefault(1.0)))
+
+	p.graph.Connect(srcNode, panNode)
+	p.graph.Connect(panNode, gainNode)
+	p.graph.Connect(gainNode, p.output)
 
 	playback := &Playback{
-		media: media,
-
-		loop: info.Loop,
-		gain: float32(info.Gain.ValueOrDefault(1.0)),
-		pan:  float32(info.Pan),
-
-		offset: 0,
+		srcNode:  srcNode,
+		panNode:  panNode,
+		gainNode: gainNode,
 	}
+
+	p.playbackMU.Lock()
+	defer p.playbackMU.Unlock()
 	p.playbacks[playback] = struct{}{}
+
 	return playback
 }
 
@@ -128,35 +147,108 @@ func (p *Player) Close() {
 	p.ctx.Free()
 }
 
-func (p *Player) onSamples(pOutputSample, pInputSamples []byte, framecount uint32) {
+func (p *Player) CreatePlayback(media *Media, loop bool) *PlaybackNode {
+	// TODO: Fetch from pool.
+	result := NewPlaybackNode(p, media, loop)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeletePlayback(node *PlaybackNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateOscillator() *OscillatorNode {
+	// TODO: Fetch from pool.
+	result := NewOscillatorNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteOscillator(node *OscillatorNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateGain() *GainNode {
+	// TODO: Fetch from pool.
+	result := NewGainNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteGain(node *GainNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreatePan() *PanNode {
+	// TODO: Fetch from pool.
+	result := NewPanNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeletePan(node *PanNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) Output() *OutputNode {
+	return p.output
+}
+
+func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
+	clear(outputData)
+	p.buffer.Reset(frameCount)
+	p.output.Prepare(outputData)
+
+	snapshot := p.graph.Snapshot()
+	p.processSnapshot(ProcessContext{
+		FrameCount: frameCount,
+	}, snapshot)
+
 	p.playbackMU.Lock()
 	defer p.playbackMU.Unlock()
-
-	buffer := gblob.LittleEndianBlock(pOutputSample)
-
-	for i := 0; i < int(framecount); i++ {
-		var aggFrame MediaFrame
-
-		for playback := range p.playbacks {
-			frame, ok := playback.Frame()
-			if !ok {
-				delete(p.playbacks, playback)
-				continue
-			}
-			frame.ApplyGain(playback.gain)
-			frame.ApplyPan(playback.pan)
-
-			aggFrame.Add(frame)
+	for playback := range p.playbacks {
+		if playback.srcNode.Done() {
+			p.deletePlayback(playback)
 		}
+	}
+}
 
-		aggFrame.Clamp()
-		buffer.SetInt16(i*4+0, float32ToInt16(aggFrame.Left))
-		buffer.SetInt16(i*4+2, float32ToInt16(aggFrame.Right))
+func (p *Player) processSnapshot(ctx ProcessContext, snapshot *GraphSnapshot) {
+	p.inputCache = p.inputCache[:0]
+	for range len(snapshot.Processings) {
+		p.inputCache = append(p.inputCache, p.buffer.Allocate())
+	}
+
+	assignmentIndex := uint32(0)
+	for sourceIndex, processing := range snapshot.Processings {
+		output := p.buffer.Allocate()
+		processing.Processor.Process(ctx, p.inputCache[sourceIndex], output)
+
+		for range processing.AssignmentCount {
+			targetIndex := snapshot.Assignments[assignmentIndex]
+			p.inputCache[targetIndex].Add(output)
+			assignmentIndex++
+		}
 	}
 }
 
 func (p *Player) onStop() {
 	p.playbackMU.Lock()
 	defer p.playbackMU.Unlock()
-	clear(p.playbacks)
+
+	for playback := range p.playbacks {
+		p.deletePlayback(playback)
+	}
+}
+
+func (p *Player) deletePlayback(playback *Playback) {
+	playback.srcNode.Delete()
+	playback.panNode.Delete()
+	playback.gainNode.Delete()
+	delete(p.playbacks, playback)
 }

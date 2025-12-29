@@ -4,20 +4,23 @@ import (
 	"time"
 
 	"github.com/mokiat/gomath/sprec"
+	"github.com/mokiat/lacking/audio"
 )
 
 type Media struct {
-	sampleRate   int
-	length       int
+	sampleRate   uint64
+	length       uint64
 	leftChannel  Channel
 	rightChannel Channel
 }
+
+var _ audio.Media = (*Media)(nil)
 
 func (m *Media) Length() time.Duration {
 	if m == nil {
 		return 0
 	}
-	return time.Second * time.Duration(m.length/m.sampleRate)
+	return (time.Second * time.Duration(m.length)) / time.Duration(m.sampleRate)
 }
 
 func (m *Media) Delete() {
