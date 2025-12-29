@@ -256,6 +256,7 @@ func (g *Graph) removeNodeLinks(nodeIndex int32) {
 		inLink := &g.inboundLinks[inLinkIndex]
 		srcNodeIndex := inLink.sourceNode
 		g.removeOutboundLink(srcNodeIndex, nodeIndex)
+		inLinkIndex = inLink.nextLink
 	}
 
 	// Remove reciprocal inbound links.
@@ -264,6 +265,7 @@ func (g *Graph) removeNodeLinks(nodeIndex int32) {
 		outLink := &g.outboundLinks[outLinkIndex]
 		tgtNodeIndex := outLink.targetNode
 		g.removeInboundLink(tgtNodeIndex, nodeIndex)
+		outLinkIndex = outLink.nextLink
 	}
 
 	// Free inbound links.

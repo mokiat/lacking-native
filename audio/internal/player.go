@@ -135,6 +135,13 @@ func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
 
 	p.playbackMU.Lock()
 	defer p.playbackMU.Unlock()
+	// Delete finished playbacks.
+	for playback := range p.playbacks {
+		if playback.srcNode.Done() {
+			p.deletePlayback(playback)
+		}
+	}
+	// Add new playback.
 	p.playbacks[playback] = struct{}{}
 
 	return playback
@@ -208,14 +215,6 @@ func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
 	p.processSnapshot(ProcessContext{
 		FrameCount: frameCount,
 	}, snapshot)
-
-	p.playbackMU.Lock()
-	defer p.playbackMU.Unlock()
-	for playback := range p.playbacks {
-		if playback.srcNode.Done() {
-			p.deletePlayback(playback)
-		}
-	}
 }
 
 func (p *Player) processSnapshot(ctx ProcessContext, snapshot *GraphSnapshot) {
