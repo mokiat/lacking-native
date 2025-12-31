@@ -10,7 +10,7 @@ func NewOscillatorNode(player *Player) *OscillatorNode {
 	return &OscillatorNode{
 		player: player,
 
-		frequency: 400.0,
+		frequency: 440.0,
 	}
 }
 

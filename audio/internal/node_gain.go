@@ -3,6 +3,7 @@ package internal
 import (
 	"sync"
 
+	"github.com/mokiat/gomath/sprec"
 	"github.com/mokiat/lacking/audio"
 )
 
@@ -43,7 +44,7 @@ func (n *GainNode) Gain() float32 {
 func (n *GainNode) SetGain(gain float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.gain = gain
+	n.gain = sprec.Clamp(gain, 0.0, 1.0)
 }
 
 func (n *GainNode) Delete() {
