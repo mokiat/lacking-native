@@ -217,21 +217,32 @@ func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
 	}, snapshot)
 }
 
-func (p *Player) processSnapshot(ctx ProcessContext, snapshot *GraphSnapshot) {
+func (p *Player) processSnapshot(ctx ProcessContext, snapshot *ProcessingSnapshot) {
 	p.inputCache = p.inputCache[:0]
 	for range len(snapshot.Processings) {
 		p.inputCache = append(p.inputCache, p.buffer.Allocate())
 	}
+	outputCache := p.buffer.Allocate()
 
-	assignmentIndex := uint32(0)
 	for sourceIndex, processing := range snapshot.Processings {
-		output := p.buffer.Allocate()
-		processing.Processor.Process(ctx, p.inputCache[sourceIndex], output)
-
-		for range processing.AssignmentCount {
-			targetIndex := snapshot.Assignments[assignmentIndex]
-			p.inputCache[targetIndex].Add(output)
-			assignmentIndex++
+		if targetIndex, ok := snapshot.IsDirectConnection(uint32(sourceIndex)); ok {
+			// This is an optimization that passes the input of the next processing
+			// unit directly as an output to the current one, avoiding an extra copy.
+			processing.Processor.Process(ctx, p.inputCache[sourceIndex], p.inputCache[targetIndex])
+		} else {
+			// General processing path that handles multiple output assignments.
+			// In such cases the output is first written to a temporary cache and then
+			// distributed to the target processing units.
+			// This is also necessary if the target processing unit has multiple
+			// inputs in order to avoid overwriting data.
+			clear(outputCache)
+			processing.Processor.Process(ctx, p.inputCache[sourceIndex], outputCache)
+			assignmentIndex := processing.AssignmentOffset
+			for range processing.OutputCount {
+				targetIndex := snapshot.Assignments[assignmentIndex]
+				p.inputCache[targetIndex].Add(outputCache)
+				assignmentIndex++
+			}
 		}
 	}
 }

@@ -14,9 +14,9 @@ func NewGraph() *Graph {
 		freeInboundLinkIndex:  -1,
 		freeOutboundLinkIndex: -1,
 
-		tempSnapshot:    new(GraphSnapshot),
-		pendingSnapshot: new(GraphSnapshot),
-		activeSnapshot:  new(GraphSnapshot),
+		tempSnapshot:    new(ProcessingSnapshot),
+		pendingSnapshot: new(ProcessingSnapshot),
+		activeSnapshot:  new(ProcessingSnapshot),
 		swapSnapshot:    false,
 	}
 }
@@ -33,9 +33,9 @@ type Graph struct {
 	freeOutboundLinkIndex int32
 
 	snapshotMU      sync.Mutex
-	tempSnapshot    *GraphSnapshot
-	pendingSnapshot *GraphSnapshot
-	activeSnapshot  *GraphSnapshot
+	tempSnapshot    *ProcessingSnapshot
+	pendingSnapshot *ProcessingSnapshot
+	activeSnapshot  *ProcessingSnapshot
 	swapSnapshot    bool
 }
 
@@ -98,7 +98,7 @@ func (g *Graph) Disconnect(source, target Node) {
 	g.invalidateSnapshot()
 }
 
-func (g *Graph) Snapshot() *GraphSnapshot {
+func (g *Graph) Snapshot() *ProcessingSnapshot {
 	g.snapshotMU.Lock()
 	defer g.snapshotMU.Unlock()
 	if g.swapSnapshot {
@@ -322,19 +322,23 @@ func (g *Graph) invalidateSnapshot() {
 	// TODO: Cache this!
 	placementIndices := make(map[int32]uint32)
 
+	// TODO: Cache this!
+	nodeIndices := make([]int32, 0, len(g.nodes))
+
 	snapshot := g.tempSnapshot
 	snapshot.Processings = snapshot.Processings[:0]
 	snapshot.Assignments = snapshot.Assignments[:0]
 
 	for !leafNodes.IsEmpty() {
 		leafNodeIndex := leafNodes.Pop()
+		nodeIndices = append(nodeIndices, leafNodeIndex)
 		leafNode := &g.nodes[leafNodeIndex]
 
 		placementIndices[leafNodeIndex] = uint32(len(snapshot.Processings))
-		snapshot.Processings = append(snapshot.Processings, GraphProcessing{
-			nodeIndex:       leafNodeIndex,
-			Processor:       leafNode.processor,
-			AssignmentCount: 0, // TODO: Set this properly below.
+		snapshot.Processings = append(snapshot.Processings, ProcessingUnit{
+			Processor:   leafNode.processor,
+			InputCount:  0,
+			OutputCount: 0,
 		})
 
 		outLinkIndex := leafNode.firstOutboundLink
@@ -355,22 +359,23 @@ func (g *Graph) invalidateSnapshot() {
 	}
 
 	for i := range snapshot.Processings {
-		processing := &snapshot.Processings[i]
-		nodeIndex := processing.nodeIndex
+		sourceUnit := &snapshot.Processings[i]
+		sourceUnit.AssignmentOffset = uint32(len(snapshot.Assignments))
+		nodeIndex := nodeIndices[i]
 		node := &g.nodes[nodeIndex]
 
-		var countAssignments uint32
 		outLinkIndex := node.firstOutboundLink
 		for outLinkIndex != -1 {
 			outLink := &g.outboundLinks[outLinkIndex]
 			targetNodeIndex := outLink.targetNode
 			if targetPlacementIndex, ok := placementIndices[targetNodeIndex]; ok {
+				sourceUnit.OutputCount++
+				targetUnit := &snapshot.Processings[targetPlacementIndex]
+				targetUnit.InputCount++
 				snapshot.Assignments = append(snapshot.Assignments, targetPlacementIndex)
-				countAssignments++
 			}
 			outLinkIndex = outLink.nextLink
 		}
-		processing.AssignmentCount = countAssignments
 	}
 
 	g.snapshotMU.Lock()
@@ -394,32 +399,4 @@ type graphInboundLink struct {
 type graphOutboundLink struct {
 	targetNode int32
 	nextLink   int32
-}
-
-// GraphSnapshot represents a snapshot of the audio processing graph at a
-// specific point in time. It contains the list of processing units and their
-// assignments to output targets.
-type GraphSnapshot struct {
-
-	// Processings holds the list of processors to be processed in order.
-	Processings []GraphProcessing
-
-	// Assignments holds the target (output) indices for each processing unit.
-	// The number of assignments for each processing unit is specified
-	// in the corresponding GraphProcessing.AssignmentCount field.
-	Assignments []uint32
-}
-
-// GraphProcessing represents a single processing unit in the audio graph
-// along with the number of output assignments it has.
-type GraphProcessing struct {
-
-	// nodeIndex is the index of the node in the graph.
-	nodeIndex int32
-
-	// Processor is the audio processing unit.
-	Processor Processor
-
-	// AssignmentCount specifies how many output assignments this processor has.
-	AssignmentCount uint32
 }
