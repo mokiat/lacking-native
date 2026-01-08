@@ -17,6 +17,10 @@ type Processor interface {
 // ProcessContext provides context information for an audio processing call.
 type ProcessContext struct {
 
+	// SampleRate indicates the sample rate (in Hz) at which audio is being
+	// processed.
+	SampleRate uint32
+
 	// FrameCount indicates the number of audio frames to be processed in this
 	// call.
 	FrameCount uint32

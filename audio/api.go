@@ -55,6 +55,13 @@ func (a *API) CreatePan() audio.PanNode {
 	return a.player.CreatePan()
 }
 
+func (a *API) Chain(nodes ...audio.Node) {
+	count := len(nodes)
+	for i := 1; i < count; i++ {
+		a.Connect(nodes[i-1], nodes[i])
+	}
+}
+
 func (a *API) Connect(source, target audio.Node) {
 	a.graph.Connect(source.(internal.Node), target.(internal.Node))
 }

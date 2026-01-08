@@ -13,6 +13,8 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
+const sampleRate = 44100
+
 func NewPlayer(graph *Graph) (*Player, error) {
 	output := newOutputNode()
 	graph.Register(output)
@@ -33,7 +35,7 @@ func NewPlayer(graph *Graph) (*Player, error) {
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Playback)
 	deviceConfig.Playback.Format = malgo.FormatS16
 	deviceConfig.Playback.Channels = 2
-	deviceConfig.SampleRate = 44100
+	deviceConfig.SampleRate = sampleRate
 	deviceConfig.Alsa.NoMMap = 1
 
 	deviceCallbacks := malgo.DeviceCallbacks{
@@ -101,7 +103,7 @@ func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
 	rightChannel := Channel{
 		samples: make([]float32, length),
 	}
-	for i := 0; i < length; i++ {
+	for i := range length {
 		leftInt16 := buffer.Int16(i*4 + 0)
 		rightInt16 := buffer.Int16(i*4 + 2)
 		leftChannel.samples[i] = int16ToFloat32(leftInt16)
@@ -213,6 +215,7 @@ func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
 
 	snapshot := p.graph.Snapshot()
 	p.processSnapshot(ProcessContext{
+		SampleRate: sampleRate,
 		FrameCount: frameCount,
 	}, snapshot)
 }
