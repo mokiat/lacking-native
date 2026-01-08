@@ -23,6 +23,7 @@ func NewPlayer(graph *Graph) (*Player, error) {
 		playbacks: make(map[*Playback]struct{}),
 		output:    output,
 		buffer:    newBuffer(1024 * 1024), // 1 MiB buffer
+		listener:  NewSpatialListener(),
 		graph:     graph,
 	}
 
@@ -63,9 +64,10 @@ type Player struct {
 	playbackMU sync.Mutex
 	playbacks  map[*Playback]struct{}
 
-	buffer *Buffer
-	graph  *Graph
-	output *OutputNode
+	buffer   *Buffer
+	graph    *Graph
+	listener *SpatialListener
+	output   *OutputNode
 
 	inputCache []FrameList
 }
@@ -202,6 +204,22 @@ func (p *Player) CreatePan() *PanNode {
 func (p *Player) DeletePan(node *PanNode) {
 	p.graph.Unregister(node)
 	// TODO: Return to pool.
+}
+
+func (p *Player) CreateSpatialNode() *SpatialNode {
+	// TODO: Fetch from pool.
+	result := NewSpatialNode(p, p.listener)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteSpatialNode(node *SpatialNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) SpatialListener() *SpatialListener {
+	return p.listener
 }
 
 func (p *Player) Output() *OutputNode {

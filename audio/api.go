@@ -39,20 +39,24 @@ func (a *API) Play(media audio.Media, info audio.PlayInfo) audio.Playback {
 	return a.player.Play(media.(*internal.Media), info)
 }
 
-func (a *API) CreatePlayback(media audio.Media, loop bool) audio.PlaybackNode {
+func (a *API) CreatePlaybackNode(media audio.Media, loop bool) audio.PlaybackNode {
 	return a.player.CreatePlayback(media.(*internal.Media), loop)
 }
 
-func (a *API) CreateOscillator() audio.OscillatorNode {
+func (a *API) CreateOscillatorNode() audio.OscillatorNode {
 	return a.player.CreateOscillator()
 }
 
-func (a *API) CreateGain() audio.GainNode {
+func (a *API) CreateGainNode() audio.GainNode {
 	return a.player.CreateGain()
 }
 
-func (a *API) CreatePan() audio.PanNode {
+func (a *API) CreatePanNode() audio.PanNode {
 	return a.player.CreatePan()
+}
+
+func (a *API) CreateSpatialNode() audio.SpatialNode {
+	return a.player.CreateSpatialNode()
 }
 
 func (a *API) Chain(nodes ...audio.Node) {
@@ -68,6 +72,10 @@ func (a *API) Connect(source, target audio.Node) {
 
 func (a *API) Disconnect(source, target audio.Node) {
 	a.graph.Disconnect(source.(internal.Node), target.(internal.Node))
+}
+
+func (a *API) SpatialListener() audio.SpatialListener {
+	return a.player.SpatialListener()
 }
 
 func (a *API) Output() audio.Node {
