@@ -72,7 +72,18 @@ type Player struct {
 	inputCache []FrameList
 }
 
-func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
+func (p *Player) SampleRate() int {
+	return sampleRate
+}
+
+func (p *Player) CreateMedia(samples []audio.Sample) *Media {
+	return &Media{
+		sampleRate: sampleRate,
+		samples:    samples,
+	}
+}
+
+func (p *Player) ParseMedia(info audio.MediaInfo) *Media {
 	decoder, err := mp3.NewDecoder(bytes.NewReader(info.Data))
 	if err != nil {
 		logger.Error("Error creating decoder",
@@ -99,109 +110,71 @@ func (p *Player) CreateMedia(info audio.MediaInfo) *Media {
 	buffer := gblob.LittleEndianBlock(data)
 
 	length := len(data) / 4
-	leftChannel := Channel{
-		samples: make([]float32, length),
-	}
-	rightChannel := Channel{
-		samples: make([]float32, length),
-	}
+	samples := make([]audio.Sample, length)
 	for i := range length {
 		leftInt16 := buffer.Int16(i*4 + 0)
 		rightInt16 := buffer.Int16(i*4 + 2)
-		leftChannel.samples[i] = int16ToFloat32(leftInt16)
-		rightChannel.samples[i] = int16ToFloat32(rightInt16)
-	}
-
-	return &Media{
-		sampleRate:   44100,
-		length:       uint64(length),
-		leftChannel:  leftChannel,
-		rightChannel: rightChannel,
-	}
-}
-
-func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
-	srcNode := p.CreatePlayback(media, info.Loop)
-	panNode := p.CreatePan()
-	panNode.SetPan(float32(info.Pan))
-	gainNode := p.CreateGain()
-	gainNode.SetGain(float32(info.Gain.ValueOrDefault(1.0)))
-
-	p.graph.Connect(srcNode, panNode)
-	p.graph.Connect(panNode, gainNode)
-	p.graph.Connect(gainNode, p.output)
-
-	playback := &Playback{
-		srcNode:  srcNode,
-		panNode:  panNode,
-		gainNode: gainNode,
-	}
-
-	p.playbackMU.Lock()
-	defer p.playbackMU.Unlock()
-	// Delete finished playbacks.
-	for playback := range p.playbacks {
-		if playback.srcNode.Done() {
-			p.deletePlayback(playback)
+		samples[i] = audio.Sample{
+			Left:  int16ToFloat32(leftInt16),
+			Right: int16ToFloat32(rightInt16),
 		}
 	}
-	// Add new playback.
-	p.playbacks[playback] = struct{}{}
 
-	return playback
+	return p.CreateMedia(samples)
 }
 
-func (p *Player) Close() {
-	p.device.Stop()
-	p.device.Uninit()
-	p.ctx.Uninit()
-	p.ctx.Free()
+func (p *Player) Output() *OutputNode {
+	return p.output
 }
 
-func (p *Player) CreatePlayback(media *Media, loop bool) *PlaybackNode {
+func (p *Player) SpatialListener() *SpatialListener {
+	return p.listener
+}
+
+func (p *Player) CreatePlaybackNode(media *Media, loop bool) *PlaybackNode {
 	// TODO: Fetch from pool.
 	result := NewPlaybackNode(p, media, loop)
 	p.graph.Register(result)
 	return result
 }
 
-func (p *Player) DeletePlayback(node *PlaybackNode) {
+func (p *Player) DeletePlaybackNode(node *PlaybackNode) {
 	p.graph.Unregister(node)
 	// TODO: Return to pool.
 }
 
-func (p *Player) CreateOscillator() *OscillatorNode {
+func (p *Player) CreateOscillatorNode() *OscillatorNode {
 	// TODO: Fetch from pool.
 	result := NewOscillatorNode(p)
 	p.graph.Register(result)
 	return result
 }
 
-func (p *Player) DeleteOscillator(node *OscillatorNode) {
+func (p *Player) DeleteOscillatorNode(node *OscillatorNode) {
 	p.graph.Unregister(node)
 	// TODO: Return to pool.
 }
 
-func (p *Player) CreateGain() *GainNode {
+func (p *Player) CreateGainNode() *GainNode {
 	// TODO: Fetch from pool.
 	result := NewGainNode(p)
 	p.graph.Register(result)
 	return result
 }
 
-func (p *Player) DeleteGain(node *GainNode) {
+func (p *Player) DeleteGainNode(node *GainNode) {
 	p.graph.Unregister(node)
 	// TODO: Return to pool.
 }
 
-func (p *Player) CreatePan() *PanNode {
+func (p *Player) CreatePanNode() *PanNode {
 	// TODO: Fetch from pool.
 	result := NewPanNode(p)
 	p.graph.Register(result)
 	return result
 }
 
-func (p *Player) DeletePan(node *PanNode) {
+func (p *Player) DeletePanNode(node *PanNode) {
 	p.graph.Unregister(node)
 	// TODO: Return to pool.
 }
@@ -218,12 +191,113 @@ func (p *Player) DeleteSpatialNode(node *SpatialNode) {
 	// TODO: Return to pool.
 }
 
-func (p *Player) SpatialListener() *SpatialListener {
-	return p.listener
+func (p *Player) CreateHighPassNode() *HighPassNode {
+	// TODO: Fetch from pool.
+	result := NewHighPassNode(p)
+	p.graph.Register(result)
+	return result
 }
 
-func (p *Player) Output() *OutputNode {
-	return p.output
+func (p *Player) DeleteHighPassNode(node *HighPassNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateLowPassNode() *LowPassNode {
+	// TODO: Fetch from pool.
+	result := NewLowPassNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteLowPassNode(node *LowPassNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateDelayNode() *DelayNode {
+	// TODO: Fetch from pool.
+	result := NewDelayNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteDelayNode(node *DelayNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateReverbNode() *ReverbNode {
+	// TODO: Fetch from pool.
+	result := NewReverbNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteReverbNode(node *ReverbNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateCompressorNode() *CompressorNode {
+	// TODO: Fetch from pool.
+	result := NewCompressorNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteCompressorNode(node *CompressorNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) CreateConnectorNode() *ConnectorNode {
+	// TODO: Fetch from pool.
+	result := NewConnectorNode(p)
+	p.graph.Register(result)
+	return result
+}
+
+func (p *Player) DeleteConnectorNode(node *ConnectorNode) {
+	p.graph.Unregister(node)
+	// TODO: Return to pool.
+}
+
+func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
+	srcNode := p.CreatePlaybackNode(media, info.Loop)
+	srcNode.Start(0.0)
+	panNode := p.CreatePanNode()
+	panNode.SetPan(float32(info.Pan))
+	gainNode := p.CreateGainNode()
+	gainNode.SetGain(float32(info.Gain.ValueOrDefault(1.0)))
+
+	p.graph.Connect(srcNode, panNode)
+	p.graph.Connect(panNode, gainNode)
+	p.graph.Connect(gainNode, p.output)
+
+	playback := &Playback{
+		srcNode:  srcNode,
+		panNode:  panNode,
+		gainNode: gainNode,
+	}
+
+	p.playbackMU.Lock()
+	defer p.playbackMU.Unlock()
+
+	p.trackPlayback(playback)
+	return playback
+}
+
+func (p *Player) trackPlayback(playback *Playback) {
+	// Delete finished playbacks.
+	for existing := range p.playbacks {
+		if !existing.srcNode.IsPlaying() {
+			p.deletePlayback(existing)
+		}
+	}
+
+	// Add new playback.
+	p.playbacks[playback] = struct{}{}
 }
 
 func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
@@ -266,6 +340,13 @@ func (p *Player) processSnapshot(ctx ProcessContext, snapshot *ProcessingSnapsho
 			}
 		}
 	}
+}
+
+func (p *Player) Close() {
+	p.device.Stop()
+	p.device.Uninit()
+	p.ctx.Uninit()
+	p.ctx.Free()
 }
 
 func (p *Player) onStop() {

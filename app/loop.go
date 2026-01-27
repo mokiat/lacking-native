@@ -13,7 +13,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
-	"github.com/mokiat/lacking/util/resource"
+	"github.com/mokiat/lacking/resource"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 	taskProcessingTimeout = 30 * time.Millisecond
 )
 
-func newLoop(locator resource.ReadLocator, title string, window *glfw.Window, controller app.Controller, audioEnabled bool) *loop {
+func newLoop(locator resource.Locator, title string, window *glfw.Window, controller app.Controller, audioEnabled bool) *loop {
 	var audioAPI *nativeaudio.API
 	if audioEnabled {
 		var err error
@@ -60,7 +60,7 @@ var _ app.Window = (*loop)(nil)
 
 type loop struct {
 	platform          *platform
-	locator           resource.ReadLocator
+	locator           resource.Locator
 	title             string
 	window            *glfw.Window
 	controller        app.Controller

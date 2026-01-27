@@ -57,5 +57,5 @@ func (n *OscillatorNode) SetFrequency(frequency float32) {
 }
 
 func (n *OscillatorNode) Delete() {
-	n.player.DeleteOscillator(n)
+	n.player.DeleteOscillatorNode(n)
 }

@@ -1,15 +1,21 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/mokiat/lacking/app"
-	"github.com/mokiat/lacking/util/resource"
+	"github.com/mokiat/lacking/resource"
 )
 
 // NewConfig creates a new Config object that contains the minimum
 // required settings.
 func NewConfig(title string, width, height int) *Config {
+	store, err := resource.NewFileStore(".")
+	if err != nil {
+		panic(fmt.Errorf("error creating default file store: %w", err))
+	}
 	return &Config{
-		locator:       resource.NewFileLocator("."),
+		locator:       store,
 		title:         title,
 		width:         width,
 		height:        height,
@@ -21,7 +27,7 @@ func NewConfig(title string, width, height int) *Config {
 
 // Config represents an application window configuration.
 type Config struct {
-	locator       resource.ReadLocator
+	locator       resource.Locator
 	title         string
 	width         int
 	height        int
@@ -167,13 +173,13 @@ func (c *Config) Icon() string {
 
 // SetLocator changes the resource locator that will be used to load
 // app-specific resources (e.g. icon).
-func (c *Config) SetLocator(locator resource.ReadLocator) {
+func (c *Config) SetLocator(locator resource.Locator) {
 	c.locator = locator
 }
 
 // Locator returns the resource locator that will be used to load
 // app-specific resources (e.g. icon).
-func (c *Config) Locator() resource.ReadLocator {
+func (c *Config) Locator() resource.Locator {
 	return c.locator
 }
 

@@ -48,5 +48,5 @@ func (n *GainNode) SetGain(gain float32) {
 }
 
 func (n *GainNode) Delete() {
-	n.player.DeleteGain(n)
+	n.player.DeleteGainNode(n)
 }

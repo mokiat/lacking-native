@@ -71,5 +71,5 @@ func (n *PanNode) SetPan(pan float32) {
 }
 
 func (n *PanNode) Delete() {
-	n.player.DeletePan(n)
+	n.player.DeletePanNode(n)
 }
