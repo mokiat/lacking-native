@@ -3,88 +3,83 @@ package internal
 import (
 	"sync"
 
-	"github.com/mokiat/gomath/sprec"
 	"github.com/mokiat/lacking/audio"
 )
 
 func NewLowPassNode(player *Player) *LowPassNode {
+	const defaultCutoffFrequency = 350.0
+
+	filterL := NewLowPassFilter()
+	filterL.Configure(defaultCutoffFrequency, defaultSampleRate)
+
+	filterR := NewLowPassFilter()
+	filterR.Configure(defaultCutoffFrequency, defaultSampleRate)
+
 	return &LowPassNode{
 		player: player,
 
-		cutoffFrequency: 350.0,
+		cutoffFrequency: defaultCutoffFrequency,
+
+		filterL: filterL,
+		filterR: filterR,
 	}
 }
 
 type LowPassNode struct {
 	player *Player
 
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
 	mu              sync.Mutex
 	cutoffFrequency float32
 
-	inputNeg1 Frame
-	inputNeg2 Frame
-
-	outputNeg1 Frame
-	outputNeg2 Frame
+	// The following filters are used only during processing
+	// and should be configured only from the processing thread.
+	filterL *LowPassFilter
+	filterR *LowPassFilter
 }
 
 var _ Node = (*LowPassNode)(nil)
 var _ audio.LowPassNode = (*LowPassNode)(nil)
 
 func (n *LowPassNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	fc := n.CutoffFrequency()
-	fs := float32(n.player.SampleRate())
+	fc := n.CutoffFrequency() // store value locally to avoid long locks
+	fs := n.player.SampleRate()
 
-	// This uses a second-order low-pass filter algorithm based on the
-	// Audio EQ Cookbook by Robert Bristow-Johnson.
-	// Reference: https://www.w3.org/TR/audio-eq-cookbook/
-	angle := sprec.Radians(2.0 * sprec.Pi * (fc / fs))
-	cs := sprec.Cos(angle)
-	sn := sprec.Sin(angle)
-	alpha := sn / sprec.Sqrt(2.0)
+	const threshold = 0.1
+	if fc <= threshold {
+		return // nothing passes through
+	}
+	nyquist := float32(fs) / 2.0
+	if fc >= (nyquist - threshold) {
+		copy(outputFrames, inputFrames)
+		return // everything passes through
+	}
 
-	a0 := 1.0 + alpha
-	b0 := ((1.0 - cs) / 2.0) / a0
-	b1 := (1.0 - cs) / a0
-	b2 := ((1.0 - cs) / 2.0) / a0
-	a1 := (-2.0 * cs) / a0
-	a2 := (1.0 - alpha) / a0
+	n.filterL.Configure(fc, fs)
+	n.filterR.Configure(fc, fs)
 
 	for i := range outputFrames {
 		input := inputFrames[i]
-
 		outputFrames[i] = Frame{
-			Left: b0*input.Left +
-				b1*n.inputNeg1.Left +
-				b2*n.inputNeg2.Left -
-				a1*n.outputNeg1.Left -
-				a2*n.outputNeg2.Left,
-
-			Right: b0*input.Right +
-				b1*n.inputNeg1.Right +
-				b2*n.inputNeg2.Right -
-				a1*n.outputNeg1.Right -
-				a2*n.outputNeg2.Right,
+			Left:  n.filterL.Process(input.Left),
+			Right: n.filterR.Process(input.Right),
 		}
-
-		n.inputNeg2 = n.inputNeg1
-		n.inputNeg1 = input
-
-		n.outputNeg2 = n.outputNeg1
-		n.outputNeg1 = outputFrames[i]
 	}
 }
 
 func (n *LowPassNode) CutoffFrequency() float32 {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	return n.cutoffFrequency
 }
 
 func (n *LowPassNode) SetCutoffFrequency(frequency float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.cutoffFrequency = sprec.Clamp(0.0, frequency, 44100.0)
+
+	n.cutoffFrequency = frequency
 }
 
 func (n *LowPassNode) Delete() {
