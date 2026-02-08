@@ -1,8 +1,6 @@
 package internal
 
-import (
-	"github.com/mokiat/gomath/sprec"
-)
+import "github.com/mokiat/gomath/sprec"
 
 func NewLowPassFilter() *LowPassFilter {
 	result := &LowPassFilter{}
@@ -24,9 +22,9 @@ type LowPassFilter struct {
 }
 
 func (f *LowPassFilter) Configure(cutoffFrequency float32, sampleRate int) {
-	const fcPadding = 0.1
+	const fcEpsilon = 0.1
 	fs := float32(sampleRate)
-	fc := min(max(fcPadding, cutoffFrequency), (fs/2.0)-fcPadding)
+	fc := min(max(fcEpsilon, cutoffFrequency), (fs/2.0)-fcEpsilon)
 
 	// This uses a second-order low-pass filter algorithm based on the
 	// Audio EQ Cookbook by Robert Bristow-Johnson.
