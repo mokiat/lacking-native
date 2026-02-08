@@ -38,6 +38,12 @@ var _ audio.DelayNode = (*DelayNode)(nil)
 func (n *DelayNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
 	delay := n.DelayTime() // store gain locally to avoid long locks
 
+	const delayThreshold = 0.00001
+	if delay < delayThreshold {
+		copy(outputFrames, inputFrames)
+		return // no delay, just pass through
+	}
+
 	bufferSize := int64(len(n.buffer))
 	delayOffset := int64(float32(n.player.SampleRate()) * delay)
 	delayOffset = min(delayOffset, bufferSize-1)
@@ -65,12 +71,14 @@ func (n *DelayNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameL
 func (n *DelayNode) DelayTime() float32 {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	return n.delayTime
 }
 
 func (n *DelayNode) SetDelayTime(delayTime float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	n.delayTime = sprec.Clamp(delayTime, 0.0, maxDelayNodeSeconds)
 }
 

@@ -3,14 +3,14 @@ package internal
 import (
 	"sync"
 
-	"github.com/mokiat/gomath/sprec"
 	"github.com/mokiat/lacking/audio"
 )
 
 func NewGainNode(player *Player) *GainNode {
 	return &GainNode{
 		player: player,
-		gain:   1.0,
+
+		gain: 1.0,
 	}
 }
 
@@ -27,6 +27,11 @@ var _ audio.GainNode = (*GainNode)(nil)
 func (n *GainNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
 	gain := n.Gain() // store gain locally to avoid long locks
 
+	const gainThreshold = 0.001
+	if gain < gainThreshold {
+		return // no output, just silence
+	}
+
 	for i, frame := range inputFrames {
 		outputFrames[i] = Frame{
 			Left:  frame.Left * gain,
@@ -38,13 +43,15 @@ func (n *GainNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameLi
 func (n *GainNode) Gain() float32 {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	return n.gain
 }
 
 func (n *GainNode) SetGain(gain float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.gain = sprec.Clamp(gain, 0.0, 1.0)
+
+	n.gain = max(0.0, gain)
 }
 
 func (n *GainNode) Delete() {
