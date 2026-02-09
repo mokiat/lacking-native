@@ -3,33 +3,38 @@ package internal
 import (
 	"sync"
 
-	"github.com/mokiat/gog"
-	"github.com/mokiat/gomath/sprec"
 	"github.com/mokiat/lacking/audio"
 )
 
-const maxDelayNodeSeconds = 1.0
-
 func NewDelayNode(player *Player) *DelayNode {
-	bufferSize := 1 + int(float32(player.SampleRate())*maxDelayNodeSeconds)
+	const maxDelaySeconds = 1.0
+
+	maxDelaySamples := int(maxDelaySeconds * float32(player.SampleRate()))
+	filterL := NewDelayFilter(maxDelaySamples)
+	filterR := NewDelayFilter(maxDelaySamples)
 
 	return &DelayNode{
 		player: player,
 
 		delayTime: 0.0,
 
-		buffer: make([]Frame, bufferSize),
+		filterL: filterL,
+		filterR: filterR,
 	}
 }
 
 type DelayNode struct {
 	player *Player
 
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
 	mu        sync.Mutex
 	delayTime float32
 
-	buffer      []Frame
-	writeOffset int64
+	// The following filters are used only during processing
+	// and should be configured only from the processing thread.
+	filterL *DelayFilter
+	filterR *DelayFilter
 }
 
 var _ Node = (*DelayNode)(nil)
@@ -44,28 +49,17 @@ func (n *DelayNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameL
 		return // no delay, just pass through
 	}
 
-	bufferSize := int64(len(n.buffer))
-	delayOffset := int64(float32(n.player.SampleRate()) * delay)
-	delayOffset = min(delayOffset, bufferSize-1)
-
-	writeOffset := n.writeOffset
-	readOffset := gog.Ternary(writeOffset >= delayOffset,
-		writeOffset-delayOffset,
-		bufferSize+writeOffset-delayOffset,
-	)
-
-	// Note: This implementation writes and reads to and from the delay buffer
-	// at the same time. It also orders samples in opposite order compared to the
-	// input and output buffers.
+	delaySamples := int(delay * float32(n.player.SampleRate()))
+	n.filterL.Configure(delaySamples)
+	n.filterR.Configure(delaySamples)
 
 	for i := range outputFrames {
-		n.buffer[writeOffset] = inputFrames[i]
-		outputFrames[i] = n.buffer[readOffset]
-		writeOffset = (writeOffset + 1) % bufferSize
-		readOffset = (readOffset + 1) % bufferSize
+		input := inputFrames[i]
+		outputFrames[i] = Frame{
+			Left:  n.filterL.Process(input.Left),
+			Right: n.filterR.Process(input.Right),
+		}
 	}
-
-	n.writeOffset = writeOffset
 }
 
 func (n *DelayNode) DelayTime() float32 {
@@ -79,7 +73,7 @@ func (n *DelayNode) SetDelayTime(delayTime float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.delayTime = sprec.Clamp(delayTime, 0.0, maxDelayNodeSeconds)
+	n.delayTime = delayTime
 }
 
 func (n *DelayNode) Delete() {
