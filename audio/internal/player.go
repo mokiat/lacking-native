@@ -13,7 +13,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-const sampleRate = 44100
+const defaultSampleRate = 44100
 
 func NewPlayer(graph *Graph) (*Player, error) {
 	output := newOutputNode()
@@ -21,10 +21,11 @@ func NewPlayer(graph *Graph) (*Player, error) {
 
 	player := &Player{
 		playbacks: make(map[*Playback]struct{}),
-		output:    output,
-		buffer:    newBuffer(1024 * 1024), // 1 MiB buffer
-		listener:  NewSpatialListener(),
-		graph:     graph,
+
+		ioBuffer: newBuffer(1024 * 1024), // 1 MiB buffer
+		listener: NewSpatialListener(),
+		graph:    graph,
+		output:   output,
 	}
 
 	ctx, err := malgo.InitContext(nil, malgo.ContextConfig{}, nil)
@@ -36,7 +37,7 @@ func NewPlayer(graph *Graph) (*Player, error) {
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Playback)
 	deviceConfig.Playback.Format = malgo.FormatS16
 	deviceConfig.Playback.Channels = 2
-	deviceConfig.SampleRate = sampleRate
+	deviceConfig.SampleRate = defaultSampleRate
 	deviceConfig.Alsa.NoMMap = 1
 
 	deviceCallbacks := malgo.DeviceCallbacks{
@@ -64,7 +65,7 @@ type Player struct {
 	playbackMU sync.Mutex
 	playbacks  map[*Playback]struct{}
 
-	buffer   *Buffer
+	ioBuffer *Buffer
 	graph    *Graph
 	listener *SpatialListener
 	output   *OutputNode
@@ -73,12 +74,12 @@ type Player struct {
 }
 
 func (p *Player) SampleRate() int {
-	return sampleRate
+	return defaultSampleRate
 }
 
 func (p *Player) CreateMedia(samples []audio.Sample) *Media {
 	return &Media{
-		sampleRate: sampleRate,
+		sampleRate: defaultSampleRate,
 		samples:    samples,
 	}
 }
@@ -92,12 +93,11 @@ func (p *Player) ParseMedia(info audio.MediaInfo) *Media {
 		return nil
 	}
 
-	if decoder.SampleRate() != 44100 {
-		//  TODO: Handle resample in the future.
-		logger.Error("Unsupported sample rate",
-			slog.Int("rate", decoder.SampleRate()),
+	if decoder.SampleRate() != p.SampleRate() {
+		logger.Warn("Media sample rate does not match player sample rate",
+			slog.Int("media_rate", decoder.SampleRate()),
+			slog.Int("player_rate", p.SampleRate()),
 		)
-		return nil
 	}
 
 	data, err := io.ReadAll(decoder)
@@ -120,6 +120,8 @@ func (p *Player) ParseMedia(info audio.MediaInfo) *Media {
 		}
 	}
 
+	samples = audio.Resample(samples, decoder.SampleRate(), p.SampleRate())
+
 	return p.CreateMedia(samples)
 }
 
@@ -132,7 +134,6 @@ func (p *Player) SpatialListener() *SpatialListener {
 }
 
 func (p *Player) CreatePlaybackNode(media *Media, loop bool) *PlaybackNode {
-	// TODO: Fetch from pool.
 	result := NewPlaybackNode(p, media, loop)
 	p.graph.Register(result)
 	return result
@@ -140,11 +141,9 @@ func (p *Player) CreatePlaybackNode(media *Media, loop bool) *PlaybackNode {
 
 func (p *Player) DeletePlaybackNode(node *PlaybackNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateOscillatorNode() *OscillatorNode {
-	// TODO: Fetch from pool.
 	result := NewOscillatorNode(p)
 	p.graph.Register(result)
 	return result
@@ -152,11 +151,9 @@ func (p *Player) CreateOscillatorNode() *OscillatorNode {
 
 func (p *Player) DeleteOscillatorNode(node *OscillatorNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateGainNode() *GainNode {
-	// TODO: Fetch from pool.
 	result := NewGainNode(p)
 	p.graph.Register(result)
 	return result
@@ -164,11 +161,9 @@ func (p *Player) CreateGainNode() *GainNode {
 
 func (p *Player) DeleteGainNode(node *GainNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreatePanNode() *PanNode {
-	// TODO: Fetch from pool.
 	result := NewPanNode(p)
 	p.graph.Register(result)
 	return result
@@ -176,11 +171,9 @@ func (p *Player) CreatePanNode() *PanNode {
 
 func (p *Player) DeletePanNode(node *PanNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateSpatialNode() *SpatialNode {
-	// TODO: Fetch from pool.
 	result := NewSpatialNode(p, p.listener)
 	p.graph.Register(result)
 	return result
@@ -188,11 +181,9 @@ func (p *Player) CreateSpatialNode() *SpatialNode {
 
 func (p *Player) DeleteSpatialNode(node *SpatialNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateHighPassNode() *HighPassNode {
-	// TODO: Fetch from pool.
 	result := NewHighPassNode(p)
 	p.graph.Register(result)
 	return result
@@ -200,11 +191,9 @@ func (p *Player) CreateHighPassNode() *HighPassNode {
 
 func (p *Player) DeleteHighPassNode(node *HighPassNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateLowPassNode() *LowPassNode {
-	// TODO: Fetch from pool.
 	result := NewLowPassNode(p)
 	p.graph.Register(result)
 	return result
@@ -212,11 +201,9 @@ func (p *Player) CreateLowPassNode() *LowPassNode {
 
 func (p *Player) DeleteLowPassNode(node *LowPassNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateDelayNode() *DelayNode {
-	// TODO: Fetch from pool.
 	result := NewDelayNode(p)
 	p.graph.Register(result)
 	return result
@@ -224,11 +211,9 @@ func (p *Player) CreateDelayNode() *DelayNode {
 
 func (p *Player) DeleteDelayNode(node *DelayNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateReverbNode() *ReverbNode {
-	// TODO: Fetch from pool.
 	result := NewReverbNode(p)
 	p.graph.Register(result)
 	return result
@@ -236,11 +221,9 @@ func (p *Player) CreateReverbNode() *ReverbNode {
 
 func (p *Player) DeleteReverbNode(node *ReverbNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateCompressorNode() *CompressorNode {
-	// TODO: Fetch from pool.
 	result := NewCompressorNode(p)
 	p.graph.Register(result)
 	return result
@@ -248,11 +231,9 @@ func (p *Player) CreateCompressorNode() *CompressorNode {
 
 func (p *Player) DeleteCompressorNode(node *CompressorNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) CreateConnectorNode() *ConnectorNode {
-	// TODO: Fetch from pool.
 	result := NewConnectorNode(p)
 	p.graph.Register(result)
 	return result
@@ -260,7 +241,6 @@ func (p *Player) CreateConnectorNode() *ConnectorNode {
 
 func (p *Player) DeleteConnectorNode(node *ConnectorNode) {
 	p.graph.Unregister(node)
-	// TODO: Return to pool.
 }
 
 func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
@@ -302,12 +282,12 @@ func (p *Player) trackPlayback(playback *Playback) {
 
 func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
 	clear(outputData)
-	p.buffer.Reset(frameCount)
+	p.ioBuffer.Reset(frameCount)
 	p.output.Prepare(outputData)
 
 	snapshot := p.graph.Snapshot()
 	p.processSnapshot(ProcessContext{
-		SampleRate: sampleRate,
+		SampleRate: defaultSampleRate,
 		FrameCount: frameCount,
 	}, snapshot)
 }
@@ -315,9 +295,9 @@ func (p *Player) onSamples(outputData, _ []byte, frameCount uint32) {
 func (p *Player) processSnapshot(ctx ProcessContext, snapshot *ProcessingSnapshot) {
 	p.inputCache = p.inputCache[:0]
 	for range len(snapshot.Processings) {
-		p.inputCache = append(p.inputCache, p.buffer.Allocate())
+		p.inputCache = append(p.inputCache, p.ioBuffer.Allocate())
 	}
-	outputCache := p.buffer.Allocate()
+	outputCache := p.ioBuffer.Allocate()
 
 	for sourceIndex, processing := range snapshot.Processings {
 		if targetIndex, ok := snapshot.IsDirectConnection(uint32(sourceIndex)); ok {
