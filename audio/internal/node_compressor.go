@@ -44,7 +44,7 @@ func (n *CompressorNode) Process(ctx ProcessContext, inputFrames, outputFrames F
 		attack  = 0.003
 		release = 0.25
 
-		invRatio = 1.0 / ratio
+		invRatioNegOne = (1.0 / ratio) - 1.0
 	)
 
 	attackCoeff := float32(math.Exp(-1.0 / (float64(sampleRate) * attack)))
@@ -55,18 +55,17 @@ func (n *CompressorNode) Process(ctx ProcessContext, inputFrames, outputFrames F
 		peak = max(1.0e-8, peak) // avoid log of zero
 		peakDB := audio.GainToDB(peak)
 
-		targetDB := float32(0.0)
+		reductionDB := float32(0.0)
 		if peakDB > threshold { // needs compression
+			z := peakDB - threshold
 			if peakDB >= (threshold + knee) { // hard compression
-				z := peakDB - threshold
-				targetDB = (invRatio - 1.0) * z
+				reductionDB = invRatioNegOne * (z - knee/2.0)
 			} else { // soft compression
-				z := peakDB - threshold
-				targetDB = (invRatio - 1.0) * ((2.0 * z * z / knee) - (z * z * z / (knee * knee)))
+				reductionDB = invRatioNegOne * (z * z) / (2.0 * knee)
 			}
 		}
 
-		targetGain := audio.DBToGain(targetDB)
+		targetGain := audio.DBToGain(reductionDB)
 		if targetGain < n.currentGain {
 			n.currentGain = sprec.Mix(targetGain, n.currentGain, attackCoeff)
 		} else {
