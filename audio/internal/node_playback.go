@@ -2,7 +2,6 @@ package internal
 
 import (
 	"sync"
-	"time"
 
 	"github.com/mokiat/lacking/audio"
 )
@@ -12,7 +11,6 @@ func NewPlaybackNode(player *Player, media *Media, loop bool) *PlaybackNode {
 		player:     player,
 		samples:    media.samples,
 		sampleRate: media.sampleRate,
-		length:     media.Length(),
 
 		state: playbackState{
 			loopStart: 0,
@@ -31,7 +29,6 @@ type PlaybackNode struct {
 	player     *Player
 	samples    []audio.Sample
 	sampleRate int
-	length     time.Duration
 
 	mu    sync.Mutex
 	state playbackState
