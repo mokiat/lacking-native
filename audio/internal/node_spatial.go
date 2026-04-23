@@ -16,6 +16,8 @@ func NewSpatialNode(player *Player, listener *SpatialListener) *SpatialNode {
 }
 
 type SpatialNode struct {
+	audio.Node // marker interface
+
 	player   *Player
 	listener *SpatialListener
 

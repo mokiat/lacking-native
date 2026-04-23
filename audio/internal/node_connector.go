@@ -9,6 +9,8 @@ func NewConnectorNode(player *Player) *ConnectorNode {
 }
 
 type ConnectorNode struct {
+	audio.Node // marker interface
+
 	player *Player
 }
 

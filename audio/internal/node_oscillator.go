@@ -18,6 +18,8 @@ func NewOscillatorNode(player *Player) *OscillatorNode {
 }
 
 type OscillatorNode struct {
+	audio.Node // marker interface
+
 	player *Player
 
 	angle sprec.Angle

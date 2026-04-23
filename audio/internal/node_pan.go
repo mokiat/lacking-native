@@ -17,6 +17,8 @@ func NewPanNode(player *Player) *PanNode {
 }
 
 type PanNode struct {
+	audio.Node // marker interface
+
 	player *Player
 
 	propMU sync.Mutex

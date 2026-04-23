@@ -15,6 +15,8 @@ func NewGainNode(player *Player) *GainNode {
 }
 
 type GainNode struct {
+	audio.Node // marker interface
+
 	player *Player
 
 	mu   sync.Mutex

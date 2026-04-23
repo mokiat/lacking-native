@@ -26,6 +26,8 @@ func NewPlaybackNode(player *Player, media *Media, loop bool) *PlaybackNode {
 }
 
 type PlaybackNode struct {
+	audio.Node // marker interface
+
 	player     *Player
 	samples    []audio.Sample
 	sampleRate int

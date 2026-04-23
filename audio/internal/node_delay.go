@@ -24,6 +24,8 @@ func NewDelayNode(player *Player) *DelayNode {
 }
 
 type DelayNode struct {
+	audio.Node // marker interface
+
 	player *Player
 
 	// The following fields are protected by the mutex and can be accessed from

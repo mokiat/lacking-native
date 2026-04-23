@@ -92,6 +92,8 @@ func NewReverbNode(player *Player) *ReverbNode {
 }
 
 type ReverbNode struct {
+	audio.Node // marker interface
+
 	player *Player
 
 	mu       sync.Mutex

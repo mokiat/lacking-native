@@ -1,12 +1,17 @@
 package internal
 
-import "github.com/mokiat/gblob"
+import (
+	"github.com/mokiat/gblob"
+	"github.com/mokiat/lacking/audio"
+)
 
 func newOutputNode() *OutputNode {
 	return &OutputNode{}
 }
 
 type OutputNode struct {
+	audio.Node // marker interface
+
 	outputData []byte
 }
 
