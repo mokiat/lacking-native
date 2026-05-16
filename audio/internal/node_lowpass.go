@@ -7,18 +7,16 @@ import (
 )
 
 func NewLowPassNode(player *Player) *LowPassNode {
-	const defaultCutoffFrequency = 350.0
-
 	filterL := NewLowPassFilter()
-	filterL.Configure(defaultCutoffFrequency, defaultSampleRate)
+	filterL.Configure(audio.DefaultCutoffFrequency, defaultSampleRate)
 
 	filterR := NewLowPassFilter()
-	filterR.Configure(defaultCutoffFrequency, defaultSampleRate)
+	filterR.Configure(audio.DefaultCutoffFrequency, defaultSampleRate)
 
 	return &LowPassNode{
 		player: player,
 
-		cutoffFrequency: defaultCutoffFrequency,
+		cutoffFrequency: audio.DefaultCutoffFrequency,
 
 		filterL: filterL,
 		filterR: filterR,
@@ -45,7 +43,9 @@ var _ Node = (*LowPassNode)(nil)
 var _ audio.LowPassNode = (*LowPassNode)(nil)
 
 func (n *LowPassNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	fc := n.CutoffFrequency() // store value locally to avoid long locks
+	n.mu.Lock()
+	fc := n.cutoffFrequency // store value locally to avoid long locks
+	n.mu.Unlock()
 	fs := n.player.SampleRate()
 
 	const threshold = 0.1

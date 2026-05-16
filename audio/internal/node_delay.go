@@ -3,11 +3,13 @@ package internal
 import (
 	"sync"
 
+	"github.com/mokiat/gomath/sprec"
 	"github.com/mokiat/lacking/audio"
 )
 
+const maxDelaySeconds = 1.0
+
 func NewDelayNode(player *Player) *DelayNode {
-	const maxDelaySeconds = 1.0
 
 	maxDelaySamples := int(maxDelaySeconds * float32(player.SampleRate()))
 	filterL := NewDelayFilter(maxDelaySamples)
@@ -16,7 +18,7 @@ func NewDelayNode(player *Player) *DelayNode {
 	return &DelayNode{
 		player: player,
 
-		delayTime: 0.0,
+		delayTime: audio.DefaultDelay,
 
 		filterL: filterL,
 		filterR: filterR,
@@ -43,7 +45,9 @@ var _ Node = (*DelayNode)(nil)
 var _ audio.DelayNode = (*DelayNode)(nil)
 
 func (n *DelayNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	delay := n.DelayTime() // store gain locally to avoid long locks
+	n.mu.Lock()
+	delay := sprec.Clamp(n.delayTime, 0.0, maxDelaySeconds) // store value locally to avoid long locks
+	n.mu.Unlock()
 
 	const delayThreshold = 0.00001
 	if delay < delayThreshold {
@@ -51,7 +55,7 @@ func (n *DelayNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameL
 		return // no delay, just pass through
 	}
 
-	delaySamples := int(delay * float32(n.player.SampleRate()))
+	delaySamples := audio.SampleCount(delay, n.player.SampleRate())
 	n.filterL.Configure(delaySamples)
 	n.filterR.Configure(delaySamples)
 

@@ -9,12 +9,15 @@ import (
 )
 
 func NewCompressorNode(player *Player) *CompressorNode {
-	const defaultThreshold = -24.0
-
 	return &CompressorNode{
 		player: player,
 
-		threshold:   defaultThreshold,
+		attack:    audio.DefaultAttack,
+		release:   audio.DefaultRelease,
+		ratio:     audio.DefaultRatio,
+		knee:      audio.DefaultKnee,
+		threshold: audio.DefaultThreshold,
+
 		currentGain: 1.0,
 	}
 }
@@ -27,6 +30,10 @@ type CompressorNode struct {
 	// The following fields are protected by the mutex and can be accessed from
 	// any thread.
 	mu        sync.Mutex
+	attack    float32
+	release   float32
+	ratio     float32
+	knee      float32
 	threshold float32
 
 	// The following fields are used only during processing.
@@ -37,20 +44,18 @@ var _ Node = (*CompressorNode)(nil)
 var _ audio.CompressorNode = (*CompressorNode)(nil)
 
 func (n *CompressorNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	threshold := n.Threshold() // store value locally to avoid long locks
+	n.mu.Lock()
+	attack := n.attack       // store value locally to avoid long locks
+	release := n.release     // store value locally to avoid long locks
+	ratio := n.ratio         // store value locally to avoid long locks
+	knee := n.knee           // store value locally to avoid long locks
+	threshold := n.threshold // store value locally to avoid long locks
+	n.mu.Unlock()
+
 	sampleRate := float32(n.player.SampleRate())
-
-	const (
-		ratio   = 12.0
-		knee    = 30.0
-		attack  = 0.003
-		release = 0.25
-
-		invRatioNegOne = (1.0 / ratio) - 1.0
-	)
-
-	attackCoeff := float32(math.Exp(-1.0 / (float64(sampleRate) * attack)))
-	releaseCoeff := float32(math.Exp(-1.0 / (float64(sampleRate) * release)))
+	invRatioNegOne := (1.0 / ratio) - 1.0
+	attackCoeff := float32(math.Exp(-1.0 / (float64(sampleRate * attack))))
+	releaseCoeff := float32(math.Exp(-1.0 / (float64(sampleRate * release))))
 
 	for i, frame := range inputFrames {
 		peak := max(sprec.Abs(frame.Left), sprec.Abs(frame.Right))
@@ -79,6 +84,62 @@ func (n *CompressorNode) Process(ctx ProcessContext, inputFrames, outputFrames F
 			Right: frame.Right * n.currentGain,
 		}
 	}
+}
+
+func (n *CompressorNode) Attack() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.attack
+}
+
+func (n *CompressorNode) SetAttack(attack float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.attack = sprec.Clamp(attack, 0.0, 1.0)
+}
+
+func (n *CompressorNode) Release() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.release
+}
+
+func (n *CompressorNode) SetRelease(release float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.release = sprec.Clamp(release, 0.0, 1.0)
+}
+
+func (n *CompressorNode) Ratio() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.ratio
+}
+
+func (n *CompressorNode) SetRatio(ratio float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.ratio = sprec.Clamp(ratio, 1.0, 20.0)
+}
+
+func (n *CompressorNode) Knee() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.knee
+}
+
+func (n *CompressorNode) SetKnee(knee float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.knee = sprec.Clamp(knee, 0.0, 40.0)
 }
 
 func (n *CompressorNode) Threshold() float32 {

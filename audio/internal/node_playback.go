@@ -30,6 +30,8 @@ type PlaybackNode struct {
 	samples    []audio.Sample
 	sampleRate int
 
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
 	mu    sync.Mutex
 	state playbackState
 }
@@ -38,7 +40,10 @@ var _ Node = (*PlaybackNode)(nil)
 var _ audio.PlaybackNode = (*PlaybackNode)(nil)
 
 func (n *PlaybackNode) Process(ctx ProcessContext, _, outputFrames FrameList) {
-	state := n.fetchState()
+	n.mu.Lock()
+	state := n.state // store value locally to avoid long locks
+	n.mu.Unlock()
+
 	if !state.playing {
 		return
 	}
@@ -153,13 +158,6 @@ func (n *PlaybackNode) SetLoopEnd(loopEnd float32) {
 func (n *PlaybackNode) Delete() {
 	n.Stop()
 	n.player.DeletePlaybackNode(n)
-}
-
-func (n *PlaybackNode) fetchState() playbackState {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	return n.state
 }
 
 func (n *PlaybackNode) replaceState(candidate playbackState) {

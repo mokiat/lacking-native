@@ -12,7 +12,7 @@ func NewPanNode(player *Player) *PanNode {
 	return &PanNode{
 		player: player,
 
-		pan: 0.0,
+		pan: audio.DefaultPan,
 	}
 }
 
@@ -21,15 +21,19 @@ type PanNode struct {
 
 	player *Player
 
-	propMU sync.Mutex
-	pan    float32
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
+	mu  sync.Mutex
+	pan float32
 }
 
 var _ Node = (*PanNode)(nil)
 var _ audio.PanNode = (*PanNode)(nil)
 
 func (n *PanNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	pan := n.Pan() // store gain locally to avoid long locks
+	n.mu.Lock()
+	pan := n.pan // store gain locally to avoid long locks
+	n.mu.Unlock()
 
 	// This implementation is consistent with WebAudio's stereo panning algorithm.
 	// https://webaudio.github.io/web-audio-api/#stereopanner-algorithm
@@ -61,14 +65,16 @@ func (n *PanNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameLis
 }
 
 func (n *PanNode) Pan() float32 {
-	n.propMU.Lock()
-	defer n.propMU.Unlock()
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	return n.pan
 }
 
 func (n *PanNode) SetPan(pan float32) {
-	n.propMU.Lock()
-	defer n.propMU.Unlock()
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.pan = sprec.Clamp(pan, -1.0, 1.0)
 }
 

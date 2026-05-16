@@ -10,7 +10,7 @@ func NewGainNode(player *Player) *GainNode {
 	return &GainNode{
 		player: player,
 
-		gain: 1.0,
+		gain: audio.DefaultGain,
 	}
 }
 
@@ -19,6 +19,8 @@ type GainNode struct {
 
 	player *Player
 
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
 	mu   sync.Mutex
 	gain float32
 }
@@ -27,7 +29,9 @@ var _ Node = (*GainNode)(nil)
 var _ audio.GainNode = (*GainNode)(nil)
 
 func (n *GainNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	gain := n.Gain() // store gain locally to avoid long locks
+	n.mu.Lock()
+	gain := n.gain // store gain locally to avoid long locks
+	n.mu.Unlock()
 
 	const gainThreshold = 0.001
 	if gain < gainThreshold {

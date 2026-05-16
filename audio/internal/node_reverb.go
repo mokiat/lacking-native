@@ -53,9 +53,9 @@ func NewReverbNode(player *Player) *ReverbNode {
 	combsR := [reverbCombFilterCount]*FeedbackCombFilter{}
 	for i := range reverbCombFilterCount {
 		combsL[i] = NewFeedbackCombFilter(combDelaysL[i])
-		combsL[i].Configure(0.0, combDelaysL[i])
+		combsL[i].Configure(0.0, 0.0, combDelaysL[i])
 		combsR[i] = NewFeedbackCombFilter(combDelaysR[i])
-		combsR[i].Configure(0.0, combDelaysR[i])
+		combsR[i].Configure(0.0, 0.0, combDelaysR[i])
 	}
 
 	allPassDelaysL := [reverbAllPassFilterCount]int{}
@@ -75,12 +75,13 @@ func NewReverbNode(player *Player) *ReverbNode {
 		allPassesR[i].Configure(reverbAllPassFilterFeedback, allPassDelaysR[i])
 	}
 
-	const defaultRoomSize = 0.3
-
 	return &ReverbNode{
 		player: player,
 
-		roomSize: defaultRoomSize,
+		roomSize: audio.DefaultRoomSize,
+		damping:  audio.DefaultDamping,
+		dry:      audio.DefaultDry,
+		wet:      audio.DefaultWet,
 
 		combDelaysL: combDelaysL,
 		combDelaysR: combDelaysR,
@@ -96,9 +97,15 @@ type ReverbNode struct {
 
 	player *Player
 
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
 	mu       sync.Mutex
 	roomSize float32
+	damping  float32
+	dry      float32
+	wet      float32
 
+	// The following fields are used only during processing.
 	combDelaysL [reverbCombFilterCount]int
 	combDelaysR [reverbCombFilterCount]int
 	combsL      [reverbCombFilterCount]*FeedbackCombFilter
@@ -111,16 +118,20 @@ var _ Node = (*ReverbNode)(nil)
 var _ audio.ReverbNode = (*ReverbNode)(nil)
 
 func (n *ReverbNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	roomSize := n.RoomSize() // store value locally to avoid long locks
+	n.mu.Lock()
+	roomSize := n.roomSize
+	damping := n.damping
+	dryAmount := n.dry
+	wetAmount := n.wet
+	n.mu.Unlock()
 
 	for i := range reverbCombFilterCount {
 		feedback := 0.3 + roomSize*0.6
-		n.combsL[i].Configure(feedback, n.combDelaysL[i])
-		n.combsR[i].Configure(feedback, n.combDelaysR[i])
+		n.combsL[i].Configure(feedback, damping, n.combDelaysL[i])
+		n.combsR[i].Configure(feedback, damping, n.combDelaysR[i])
 	}
 
 	for i, frame := range inputFrames {
-		// Run through parallel comb filters.
 		outputLeft := float32(0.0)
 		outputRight := float32(0.0)
 		for c := range reverbCombFilterCount {
@@ -130,15 +141,17 @@ func (n *ReverbNode) Process(ctx ProcessContext, inputFrames, outputFrames Frame
 		outputLeft *= reverbCombFilterScale
 		outputRight *= reverbCombFilterScale
 
-		// Run through serial all-pass filters.
 		for j := range reverbAllPassFilterCount {
 			outputLeft = n.allPassesL[j].Process(outputLeft)
 			outputRight = n.allPassesR[j].Process(outputRight)
 		}
 
+		wetLeft := sprec.Mix(outputLeft, outputRight, 0.2)
+		wetRight := sprec.Mix(outputRight, outputLeft, 0.2)
+
 		outputFrames[i] = Frame{
-			Left:  sprec.Mix(outputLeft, outputRight, 0.2),
-			Right: sprec.Mix(outputRight, outputLeft, 0.2),
+			Left:  frame.Left*dryAmount + wetLeft*wetAmount,
+			Right: frame.Right*dryAmount + wetRight*wetAmount,
 		}
 	}
 }
@@ -155,6 +168,48 @@ func (n *ReverbNode) SetRoomSize(roomSize float32) {
 	defer n.mu.Unlock()
 
 	n.roomSize = sprec.Clamp(roomSize, 0.0, 1.0)
+}
+
+func (n *ReverbNode) Damping() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.damping
+}
+
+func (n *ReverbNode) SetDamping(damping float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.damping = sprec.Clamp(damping, 0.0, 1.0)
+}
+
+func (n *ReverbNode) Dry() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.dry
+}
+
+func (n *ReverbNode) SetDry(dry float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.dry = sprec.Clamp(dry, 0.0, 1.0)
+}
+
+func (n *ReverbNode) Wet() float32 {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.wet
+}
+
+func (n *ReverbNode) SetWet(wet float32) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.wet = sprec.Clamp(wet, 0.0, 1.0)
 }
 
 func (n *ReverbNode) Delete() {

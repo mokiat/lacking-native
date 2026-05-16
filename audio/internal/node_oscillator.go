@@ -11,9 +11,9 @@ func NewOscillatorNode(player *Player) *OscillatorNode {
 	return &OscillatorNode{
 		player: player,
 
-		angle: sprec.Radians(0.0),
+		frequency: audio.DefaultFrequency,
 
-		frequency: 440.0,
+		angle: sprec.Radians(0.0),
 	}
 }
 
@@ -22,17 +22,23 @@ type OscillatorNode struct {
 
 	player *Player
 
-	angle sprec.Angle
-
+	// The following fields are protected by the mutex and can be accessed from
+	// any thread.
 	mu        sync.Mutex
 	frequency float32
+
+	// The following filters are used only during processing
+	// and should be configured only from the processing thread.
+	angle sprec.Angle
 }
 
 var _ Node = (*OscillatorNode)(nil)
 var _ audio.OscillatorNode = (*OscillatorNode)(nil)
 
 func (n *OscillatorNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
-	frequency := n.Frequency() // store frequency locally to avoid long locks
+	n.mu.Lock()
+	frequency := n.frequency // store frequency locally to avoid long locks
+	n.mu.Unlock()
 
 	deltaAngle := sprec.Radians(frequency * (2.0 * sprec.Pi / float32(ctx.SampleRate)))
 
