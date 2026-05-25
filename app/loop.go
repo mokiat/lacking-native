@@ -90,6 +90,10 @@ func (l *loop) Run() error {
 	width, height := l.window.GetSize()
 	l.onGLFWSize(l.window, width, height)
 
+	l.window.SetContentScaleCallback(l.onGLFWContentScale)
+	scaleX, scaleY := l.window.GetContentScale()
+	l.onGLFWContentScale(l.window, scaleX, scaleY)
+
 	l.window.SetFramebufferSizeCallback(l.onGLFWFramebufferSize)
 	width, height = l.window.GetFramebufferSize()
 	l.onGLFWFramebufferSize(l.window, width, height)
@@ -233,6 +237,10 @@ func (l *loop) SetCursorVisible(visible bool) {
 	l.updateCursorMode()
 }
 
+func (l *loop) CursorLocked() bool {
+	return l.cursorLocked
+}
+
 func (l *loop) SetCursorLocked(locked bool) {
 	l.cursorLocked = locked
 	l.updateCursorMode()
@@ -304,6 +312,10 @@ func (l *loop) onGLFWRefresh(w *glfw.Window) {
 
 func (l *loop) onGLFWSize(w *glfw.Window, width int, height int) {
 	l.controller.OnResize(l, width, height)
+}
+
+func (l *loop) onGLFWContentScale(w *glfw.Window, scaleX, scaleY float32) {
+	// TODO: Track internally and scale everything. Also trigger an OnResize event.
 }
 
 func (l *loop) onGLFWFramebufferSize(w *glfw.Window, width int, height int) {
