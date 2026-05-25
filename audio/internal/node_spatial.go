@@ -47,7 +47,7 @@ func (n *SpatialNode) Process(ctx ProcessContext, inputFrames, outputFrames Fram
 	piAngle := sprec.Radians(sprec.Pi)
 	halfPiAngle := piAngle / 2.0
 	switch {
-	case azimuth < halfPiAngle:
+	case azimuth < -halfPiAngle:
 		azimuth = -piAngle - azimuth
 	case azimuth > halfPiAngle:
 		azimuth = piAngle - azimuth

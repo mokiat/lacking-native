@@ -3,7 +3,6 @@ package audio
 import (
 	"fmt"
 
-	"github.com/mokiat/gog/ds"
 	"github.com/mokiat/lacking-native/audio/internal"
 	"github.com/mokiat/lacking/audio"
 )
@@ -27,8 +26,6 @@ var _ audio.API = (*API)(nil)
 type API struct {
 	graph  *internal.Graph
 	player *internal.Player
-
-	gainPool *ds.Stack[*internal.GainNode]
 }
 
 func (a *API) SampleRate() int {

@@ -339,8 +339,6 @@ func (p *Player) onStop() {
 }
 
 func (p *Player) deletePlayback(playback *Playback) {
-	playback.srcNode.Delete()
-	playback.panNode.Delete()
-	playback.gainNode.Delete()
+	playback.release()
 	delete(p.playbacks, playback)
 }

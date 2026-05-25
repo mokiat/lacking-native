@@ -67,11 +67,13 @@ func (n *PlaybackNode) Process(ctx ProcessContext, _, outputFrames FrameList) {
 }
 
 func (n *PlaybackNode) Start(startTime float32) {
+	startOffset := audio.SampleCount(startTime, n.player.SampleRate())
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
 	n.state.playing = true
-	n.state.offset = 0
+	n.state.offset = uint64(startOffset)
 	n.state.revision++
 }
 

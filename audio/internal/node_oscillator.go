@@ -49,6 +49,7 @@ func (n *OscillatorNode) Process(ctx ProcessContext, inputFrames, outputFrames F
 			Right: sn,
 		}
 		n.angle += deltaAngle
+		n.angle = sprec.NormalizeAnglePos(n.angle)
 	}
 }
 
