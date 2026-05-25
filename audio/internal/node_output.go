@@ -24,7 +24,6 @@ func (n *OutputNode) Process(ctx ProcessContext, inputFrames, _ FrameList) {
 	// Instead, writing directly to the output buffer.
 	buffer := gblob.LittleEndianBlock(n.outputData)
 	for i, frame := range inputFrames {
-		frame.Clamp()
 		buffer.SetInt16(i*4+0, float32ToInt16(frame.Left))
 		buffer.SetInt16(i*4+2, float32ToInt16(frame.Right))
 	}
