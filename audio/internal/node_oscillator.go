@@ -27,8 +27,8 @@ type OscillatorNode struct {
 	mu        sync.Mutex
 	frequency float32
 
-	// The following filters are used only during processing
-	// and should be configured only from the processing thread.
+	// The following fields are used only during processing
+	// and should be changed only from the processing thread.
 	angle sprec.Angle
 }
 

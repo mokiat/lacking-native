@@ -3,6 +3,7 @@ package internal
 import (
 	"sync"
 
+	"github.com/mokiat/gog/opt"
 	"github.com/mokiat/lacking/audio"
 )
 
@@ -12,14 +13,13 @@ func NewPlaybackNode(player *Player, media *Media, loop bool) *PlaybackNode {
 		samples:    media.samples,
 		sampleRate: media.sampleRate,
 
-		state: playbackState{
-			loopStart: 0,
-			loopEnd:   uint64(len(media.samples)),
-			offset:    0,
-			revision:  0,
-			loop:      loop,
-			playing:   false,
-		},
+		change:    opt.Unspecified[playbackChange](),
+		loopStart: 0,
+		loopEnd:   uint64(len(media.samples)),
+		loop:      loop,
+		playing:   false,
+
+		offset: 0,
 	}
 }
 
@@ -32,8 +32,16 @@ type PlaybackNode struct {
 
 	// The following fields are protected by the mutex and can be accessed from
 	// any thread.
-	mu    sync.Mutex
-	state playbackState
+	mu        sync.Mutex
+	change    opt.T[playbackChange]
+	loopStart uint64
+	loopEnd   uint64
+	loop      bool
+	playing   bool
+
+	// The following fields are used only during processing
+	// and should be changed only from the processing thread.
+	offset uint64
 }
 
 var _ Node = (*PlaybackNode)(nil)
@@ -41,29 +49,47 @@ var _ audio.PlaybackNode = (*PlaybackNode)(nil)
 
 func (n *PlaybackNode) Process(ctx ProcessContext, _, outputFrames FrameList) {
 	n.mu.Lock()
-	state := n.state // store value locally to avoid long locks
+	if change, ok := n.change.Unwrap(); ok {
+		n.playing = change.playing
+		if change.changeOffset {
+			n.offset = change.offset
+		}
+		n.change = opt.Unspecified[playbackChange]()
+	}
+	loopStart := n.loopStart // store value locally to avoid long locks
+	loopEnd := n.loopEnd     // store value locally to avoid long locks
+	loop := n.loop           // store value locally to avoid long locks
+	playing := n.playing     // store value locally to avoid long locks
 	n.mu.Unlock()
 
-	if !state.playing {
+	if !playing {
 		return
 	}
 
-	offset := state.offset
 	length := uint64(len(n.samples))
+	loopEnd = min(loopEnd, length)
+	if loop && (loopStart >= loopEnd) {
+		loopStart = 0
+		loopEnd = length
+	}
 
+	offset := n.offset
 	for i := range outputFrames {
 		if offset < length {
 			outputFrames[i] = Frame(n.samples[offset])
 		}
 		offset++
-		if state.loop && (offset >= state.loopEnd) {
-			offset = state.loopStart
+		if loop && (offset >= loopEnd) {
+			offset = loopStart
 		}
 	}
+	n.offset = offset
 
-	state.offset = offset
-	state.playing = offset < length
-	n.replaceState(state)
+	n.mu.Lock()
+	if !n.change.Specified { // don't change playing state if there is a pending change
+		n.playing = offset < length
+	}
+	n.mu.Unlock()
 }
 
 func (n *PlaybackNode) Start(startTime float32) {
@@ -72,89 +98,97 @@ func (n *PlaybackNode) Start(startTime float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.state.playing = true
-	n.state.offset = uint64(startOffset)
-	n.state.revision++
+	n.change = opt.V(playbackChange{
+		offset:       uint64(startOffset),
+		changeOffset: true,
+		playing:      true,
+	})
 }
 
 func (n *PlaybackNode) Stop() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.state.playing = false
-	n.state.offset = 0
-	n.state.revision++
+	n.change = opt.V(playbackChange{
+		offset:       0,
+		changeOffset: true,
+		playing:      false,
+	})
 }
 
 func (n *PlaybackNode) Resume() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.state.playing = true
-	n.state.revision++
+	if n.change.Specified {
+		n.change.Value.playing = true
+	} else {
+		n.change = opt.V(playbackChange{
+			playing: true,
+		})
+	}
 }
 
 func (n *PlaybackNode) Pause() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.state.playing = false
-	n.state.revision++
+	if n.change.Specified {
+		n.change.Value.playing = false
+	} else {
+		n.change = opt.V(playbackChange{
+			playing: false,
+		})
+	}
 }
 
 func (n *PlaybackNode) IsPlaying() bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	return n.state.playing
+	return n.playing
 }
 
 func (n *PlaybackNode) IsLoop() bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	return n.state.loop
+	return n.loop
 }
 
 func (n *PlaybackNode) SetLoop(loop bool) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	// Note: Looping does not change the revision, as otherwise it will
-	// cause offset changes done by the processor in the meantime to be dropped.
-	n.state.loop = loop
+	n.loop = loop
 }
 
 func (n *PlaybackNode) LoopStart() float32 {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	return float32(n.state.loopStart) / float32(n.sampleRate)
+	return audio.Seconds(int(n.loopStart), n.sampleRate)
 }
 
 func (n *PlaybackNode) SetLoopStart(loopStart float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	// Note: Looping does not change the revision, as otherwise it will
-	// cause offset changes done by the processor in the meantime to be dropped.
-	n.state.loopStart = uint64(loopStart * float32(n.sampleRate))
+	n.loopStart = uint64(audio.SampleCount(loopStart, n.sampleRate))
 }
 
 func (n *PlaybackNode) LoopEnd() float32 {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	return float32(n.state.loopEnd) / float32(n.sampleRate)
+	return audio.Seconds(int(n.loopEnd), n.sampleRate)
 }
 
 func (n *PlaybackNode) SetLoopEnd(loopEnd float32) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	// Note: Looping does not change the revision, as otherwise it will
-	// cause offset changes done by the processor in the meantime to be dropped.
-	n.state.loopEnd = uint64(loopEnd * float32(n.sampleRate))
+	n.loopEnd = uint64(audio.SampleCount(loopEnd, n.sampleRate))
 }
 
 func (n *PlaybackNode) Delete() {
@@ -162,20 +196,8 @@ func (n *PlaybackNode) Delete() {
 	n.player.DeletePlaybackNode(n)
 }
 
-func (n *PlaybackNode) replaceState(candidate playbackState) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	if candidate.revision == n.state.revision {
-		n.state = candidate
-	}
-}
-
-type playbackState struct {
-	offset    uint64
-	revision  uint64
-	loopStart uint64
-	loopEnd   uint64
-	loop      bool
-	playing   bool
+type playbackChange struct {
+	offset       uint64
+	changeOffset bool
+	playing      bool
 }
