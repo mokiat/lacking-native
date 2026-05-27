@@ -8,16 +8,16 @@ import (
 
 type Media struct {
 	sampleRate int
-	samples    []audio.Sample
+	frames     []audio.Frame
 }
 
 var _ audio.Media = (*Media)(nil)
 
 func (m *Media) Length() time.Duration {
-	frameCount := len(m.samples)
+	frameCount := len(m.frames)
 	return (time.Second * time.Duration(frameCount)) / time.Duration(m.sampleRate)
 }
 
 func (m *Media) Delete() {
-	m.samples = nil
+	m.frames = nil
 }

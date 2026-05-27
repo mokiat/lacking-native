@@ -1,15 +1,11 @@
 package internal
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"log/slog"
 	"sync"
 
 	"github.com/gen2brain/malgo"
-	"github.com/hajimehoshi/go-mp3"
-	"github.com/mokiat/gblob"
 	"github.com/mokiat/lacking/audio"
 )
 
@@ -77,52 +73,19 @@ func (p *Player) SampleRate() int {
 	return defaultSampleRate
 }
 
-func (p *Player) CreateMedia(samples []audio.Sample) *Media {
+func (p *Player) CreateMedia(data audio.MediaData) *Media {
+	frames := data.Frames
+	if data.SampleRate != p.SampleRate() {
+		logger.Warn("Resampling media",
+			slog.Int("from", data.SampleRate),
+			slog.Int("to", p.SampleRate()),
+		)
+		frames = audio.Resample(data.Frames, data.SampleRate, p.SampleRate())
+	}
 	return &Media{
-		sampleRate: defaultSampleRate,
-		samples:    samples,
+		sampleRate: p.SampleRate(),
+		frames:     frames,
 	}
-}
-
-func (p *Player) ParseMedia(info audio.MediaInfo) *Media {
-	decoder, err := mp3.NewDecoder(bytes.NewReader(info.Data))
-	if err != nil {
-		logger.Error("Error creating decoder",
-			slog.String("error", err.Error()),
-		)
-		return nil
-	}
-
-	if decoder.SampleRate() != p.SampleRate() {
-		logger.Warn("Media sample rate does not match player sample rate",
-			slog.Int("media_rate", decoder.SampleRate()),
-			slog.Int("player_rate", p.SampleRate()),
-		)
-	}
-
-	data, err := io.ReadAll(decoder)
-	if err != nil {
-		logger.Error("Error reading decoder",
-			slog.String("error", err.Error()),
-		)
-		return nil
-	}
-	buffer := gblob.LittleEndianBlock(data)
-
-	length := len(data) / 4
-	samples := make([]audio.Sample, length)
-	for i := range length {
-		leftInt16 := buffer.Int16(i*4 + 0)
-		rightInt16 := buffer.Int16(i*4 + 2)
-		samples[i] = audio.Sample{
-			Left:  int16ToFloat32(leftInt16),
-			Right: int16ToFloat32(rightInt16),
-		}
-	}
-
-	samples = audio.Resample(samples, decoder.SampleRate(), p.SampleRate())
-
-	return p.CreateMedia(samples)
 }
 
 func (p *Player) Output() *OutputNode {
@@ -133,8 +96,8 @@ func (p *Player) SpatialListener() *SpatialListener {
 	return p.listener
 }
 
-func (p *Player) CreatePlaybackNode(media *Media, loop bool) *PlaybackNode {
-	result := NewPlaybackNode(p, media, loop)
+func (p *Player) CreatePlaybackNode(media *Media) *PlaybackNode {
+	result := NewPlaybackNode(p, media)
 	p.graph.Register(result, false)
 	return result
 }
@@ -244,7 +207,8 @@ func (p *Player) DeleteConnectorNode(node *ConnectorNode) {
 }
 
 func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
-	srcNode := p.CreatePlaybackNode(media, info.Loop)
+	srcNode := p.CreatePlaybackNode(media)
+	srcNode.SetLoop(info.Loop)
 	srcNode.Start(0.0)
 	panNode := p.CreatePanNode()
 	panNode.SetPan(float32(info.Pan))

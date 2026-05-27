@@ -32,16 +32,8 @@ func (a *API) SampleRate() int {
 	return a.player.SampleRate()
 }
 
-func (a *API) CreateMedia(samples []audio.Sample) audio.Media {
-	result := a.player.CreateMedia(samples)
-	if result == nil {
-		return audio.NewNopMedia()
-	}
-	return result
-}
-
-func (a *API) ParseMedia(info audio.MediaInfo) audio.Media {
-	result := a.player.ParseMedia(info)
+func (a *API) CreateMedia(data audio.MediaData) audio.Media {
+	result := a.player.CreateMedia(data)
 	if result == nil {
 		return audio.NewNopMedia()
 	}
@@ -56,8 +48,8 @@ func (a *API) SpatialListener() audio.SpatialListener {
 	return a.player.SpatialListener()
 }
 
-func (a *API) CreatePlaybackNode(media audio.Media, loop bool) audio.PlaybackNode {
-	return a.player.CreatePlaybackNode(media.(*internal.Media), loop)
+func (a *API) CreatePlaybackNode(media audio.Media) audio.PlaybackNode {
+	return a.player.CreatePlaybackNode(media.(*internal.Media))
 }
 
 func (a *API) CreateOscillatorNode() audio.OscillatorNode {

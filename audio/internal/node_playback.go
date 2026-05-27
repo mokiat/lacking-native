@@ -7,16 +7,16 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewPlaybackNode(player *Player, media *Media, loop bool) *PlaybackNode {
+func NewPlaybackNode(player *Player, media *Media) *PlaybackNode {
 	return &PlaybackNode{
 		player:     player,
-		samples:    media.samples,
+		samples:    media.frames,
 		sampleRate: media.sampleRate,
 
 		change:    opt.Unspecified[playbackChange](),
 		loopStart: 0,
-		loopEnd:   uint64(len(media.samples)),
-		loop:      loop,
+		loopEnd:   uint64(len(media.frames)),
+		loop:      false,
 		playing:   false,
 
 		offset: 0,
@@ -27,7 +27,7 @@ type PlaybackNode struct {
 	audio.Node // marker interface
 
 	player     *Player
-	samples    []audio.Sample
+	samples    []audio.Frame
 	sampleRate int
 
 	// The following fields are protected by the mutex and can be accessed from
