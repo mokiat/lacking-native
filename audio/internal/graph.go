@@ -303,6 +303,7 @@ func (g *Graph) removeNodeLinks(nodeIndex int32) {
 		g.freeOutboundLink(outLinkIndex)
 		outLinkIndex = nextOutLinkIndex
 	}
+	node.firstOutboundLink = -1
 }
 
 func (g *Graph) hasConnection(srcNodeIndex, tgtNodeIndex int32) bool {

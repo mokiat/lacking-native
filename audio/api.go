@@ -33,11 +33,7 @@ func (a *API) SampleRate() int {
 }
 
 func (a *API) CreateMedia(data audio.MediaData) audio.Media {
-	result := a.player.CreateMedia(data)
-	if result == nil {
-		return audio.NewNopMedia()
-	}
-	return result
+	return a.player.CreateMedia(data)
 }
 
 func (a *API) Output() audio.Node {

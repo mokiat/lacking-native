@@ -30,7 +30,7 @@ var _ audio.GainNode = (*GainNode)(nil)
 
 func (n *GainNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
 	n.mu.Lock()
-	gain := n.gain // store gain locally to avoid long locks
+	gain := n.gain // store value locally to avoid long locks
 	n.mu.Unlock()
 
 	const gainThreshold = 0.001

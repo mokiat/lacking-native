@@ -32,7 +32,7 @@ var _ audio.PanNode = (*PanNode)(nil)
 
 func (n *PanNode) Process(ctx ProcessContext, inputFrames, outputFrames FrameList) {
 	n.mu.Lock()
-	pan := n.pan // store gain locally to avoid long locks
+	pan := n.pan // store value locally to avoid long locks
 	n.mu.Unlock()
 
 	// This implementation is consistent with WebAudio's stereo panning algorithm.
