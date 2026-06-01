@@ -6,7 +6,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewGainNode(player *Player) *GainNode {
+func newGainNode(player *Player) *GainNode {
 	return &GainNode{
 		player: player,
 

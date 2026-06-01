@@ -8,7 +8,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewCompressorNode(player *Player) *CompressorNode {
+func newCompressorNode(player *Player) *CompressorNode {
 	return &CompressorNode{
 		player: player,
 

@@ -6,7 +6,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewHighPassNode(player *Player) *HighPassNode {
+func newHighPassNode(player *Player) *HighPassNode {
 	filterL := NewHighPassFilter()
 	filterL.Configure(audio.DefaultCutoffFrequency, defaultSampleRate)
 

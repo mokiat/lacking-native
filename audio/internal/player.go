@@ -97,7 +97,7 @@ func (p *Player) SpatialListener() *SpatialListener {
 }
 
 func (p *Player) CreatePlaybackNode(media *Media) *PlaybackNode {
-	result := NewPlaybackNode(p, media)
+	result := newPlaybackNode(p, media)
 	p.graph.Register(result, false)
 	return result
 }
@@ -107,7 +107,7 @@ func (p *Player) DeletePlaybackNode(node *PlaybackNode) {
 }
 
 func (p *Player) CreateOscillatorNode() *OscillatorNode {
-	result := NewOscillatorNode(p)
+	result := newOscillatorNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -117,7 +117,7 @@ func (p *Player) DeleteOscillatorNode(node *OscillatorNode) {
 }
 
 func (p *Player) CreateGainNode() *GainNode {
-	result := NewGainNode(p)
+	result := newGainNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -127,7 +127,7 @@ func (p *Player) DeleteGainNode(node *GainNode) {
 }
 
 func (p *Player) CreatePanNode() *PanNode {
-	result := NewPanNode(p)
+	result := newPanNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -137,7 +137,7 @@ func (p *Player) DeletePanNode(node *PanNode) {
 }
 
 func (p *Player) CreateSpatialNode() *SpatialNode {
-	result := NewSpatialNode(p, p.listener)
+	result := newSpatialNode(p, p.listener)
 	p.graph.Register(result, false)
 	return result
 }
@@ -147,7 +147,7 @@ func (p *Player) DeleteSpatialNode(node *SpatialNode) {
 }
 
 func (p *Player) CreateHighPassNode() *HighPassNode {
-	result := NewHighPassNode(p)
+	result := newHighPassNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -157,7 +157,7 @@ func (p *Player) DeleteHighPassNode(node *HighPassNode) {
 }
 
 func (p *Player) CreateLowPassNode() *LowPassNode {
-	result := NewLowPassNode(p)
+	result := newLowPassNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -167,7 +167,7 @@ func (p *Player) DeleteLowPassNode(node *LowPassNode) {
 }
 
 func (p *Player) CreateDelayNode() *DelayNode {
-	result := NewDelayNode(p)
+	result := newDelayNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -177,7 +177,7 @@ func (p *Player) DeleteDelayNode(node *DelayNode) {
 }
 
 func (p *Player) CreateReverbNode() *ReverbNode {
-	result := NewReverbNode(p)
+	result := newReverbNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -187,7 +187,7 @@ func (p *Player) DeleteReverbNode(node *ReverbNode) {
 }
 
 func (p *Player) CreateCompressorNode() *CompressorNode {
-	result := NewCompressorNode(p)
+	result := newCompressorNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -197,7 +197,7 @@ func (p *Player) DeleteCompressorNode(node *CompressorNode) {
 }
 
 func (p *Player) CreateConnectorNode() *ConnectorNode {
-	result := NewConnectorNode(p)
+	result := newConnectorNode(p)
 	p.graph.Register(result, false)
 	return result
 }
@@ -210,8 +210,10 @@ func (p *Player) Play(media *Media, info audio.PlayInfo) *Playback {
 	srcNode := p.CreatePlaybackNode(media)
 	srcNode.SetLoop(info.Loop)
 	srcNode.Start(0.0)
+
 	panNode := p.CreatePanNode()
 	panNode.SetPan(float32(info.Pan))
+
 	gainNode := p.CreateGainNode()
 	gainNode.SetGain(float32(info.Gain.ValueOrDefault(1.0)))
 

@@ -40,7 +40,7 @@ var (
 	}
 )
 
-func NewReverbNode(player *Player) *ReverbNode {
+func newReverbNode(player *Player) *ReverbNode {
 	combDelaysL := [reverbCombFilterCount]int{}
 	combDelaysR := [reverbCombFilterCount]int{}
 	for i := range reverbCombFilterCount {

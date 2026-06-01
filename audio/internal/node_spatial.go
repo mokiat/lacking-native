@@ -8,7 +8,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewSpatialNode(player *Player, listener *SpatialListener) *SpatialNode {
+func newSpatialNode(player *Player, listener *SpatialListener) *SpatialNode {
 	return &SpatialNode{
 		player:   player,
 		listener: listener,

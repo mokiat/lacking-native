@@ -8,7 +8,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewPanNode(player *Player) *PanNode {
+func newPanNode(player *Player) *PanNode {
 	return &PanNode{
 		player: player,
 

@@ -7,7 +7,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewPlaybackNode(player *Player, media *Media) *PlaybackNode {
+func newPlaybackNode(player *Player, media *Media) *PlaybackNode {
 	return &PlaybackNode{
 		player:     player,
 		samples:    media.frames,

@@ -9,8 +9,7 @@ import (
 
 const maxDelaySeconds = 1.0
 
-func NewDelayNode(player *Player) *DelayNode {
-
+func newDelayNode(player *Player) *DelayNode {
 	maxDelaySamples := int(maxDelaySeconds * float32(player.SampleRate()))
 	filterL := NewDelayFilter(maxDelaySamples)
 	filterR := NewDelayFilter(maxDelaySamples)

@@ -7,7 +7,7 @@ import (
 	"github.com/mokiat/lacking/audio"
 )
 
-func NewOscillatorNode(player *Player) *OscillatorNode {
+func newOscillatorNode(player *Player) *OscillatorNode {
 	return &OscillatorNode{
 		player: player,
 
