@@ -8,6 +8,9 @@ import (
 	"github.com/mokiat/lacking/core/audio"
 )
 
+// CompressionFilter is a stereo Processor that applies dynamic range
+// compression using a soft-knee gain computer and per-sample IIR gain
+// smoothing. All parameters are safe to set from any goroutine.
 type CompressionFilter struct {
 	// The following fields are protected by the mutex and can be accessed from
 	// any thread.
@@ -25,6 +28,8 @@ type CompressionFilter struct {
 var _ audio.Compression = (*CompressionFilter)(nil)
 var _ Processor = (*CompressionFilter)(nil)
 
+// NewCompressionFilter creates a CompressionFilter with moderate defaults:
+// 3 ms attack, 250 ms release, 12:1 ratio, -24 dB threshold, 30 dB knee.
 func NewCompressionFilter() *CompressionFilter {
 	return &CompressionFilter{
 		attack:    0.003,
@@ -37,6 +42,7 @@ func NewCompressionFilter() *CompressionFilter {
 	}
 }
 
+// Attack returns the attack time in seconds.
 func (f *CompressionFilter) Attack() float32 {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -44,6 +50,7 @@ func (f *CompressionFilter) Attack() float32 {
 	return f.attack
 }
 
+// SetAttack sets the attack time in seconds, clamped to [0, 1].
 func (f *CompressionFilter) SetAttack(attack float32) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -51,6 +58,7 @@ func (f *CompressionFilter) SetAttack(attack float32) {
 	f.attack = sprec.Clamp(attack, 0.0, 1.0)
 }
 
+// Release returns the release time in seconds.
 func (f *CompressionFilter) Release() float32 {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -58,6 +66,7 @@ func (f *CompressionFilter) Release() float32 {
 	return f.release
 }
 
+// SetRelease sets the release time in seconds, clamped to [0, 1].
 func (f *CompressionFilter) SetRelease(release float32) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -65,6 +74,7 @@ func (f *CompressionFilter) SetRelease(release float32) {
 	f.release = sprec.Clamp(release, 0.0, 1.0)
 }
 
+// Ratio returns the compression ratio.
 func (f *CompressionFilter) Ratio() float32 {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -72,6 +82,7 @@ func (f *CompressionFilter) Ratio() float32 {
 	return f.ratio
 }
 
+// SetRatio sets the compression ratio, clamped to [1, 20].
 func (f *CompressionFilter) SetRatio(ratio float32) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -79,6 +90,7 @@ func (f *CompressionFilter) SetRatio(ratio float32) {
 	f.ratio = sprec.Clamp(ratio, 1.0, 20.0)
 }
 
+// Knee returns the knee width in decibels.
 func (f *CompressionFilter) Knee() float32 {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -86,6 +98,7 @@ func (f *CompressionFilter) Knee() float32 {
 	return f.knee
 }
 
+// SetKnee sets the knee width in decibels, clamped to [0, 40].
 func (f *CompressionFilter) SetKnee(knee float32) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -93,6 +106,7 @@ func (f *CompressionFilter) SetKnee(knee float32) {
 	f.knee = sprec.Clamp(knee, 0.0, 40.0)
 }
 
+// Threshold returns the threshold level in decibels.
 func (f *CompressionFilter) Threshold() float32 {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -100,6 +114,7 @@ func (f *CompressionFilter) Threshold() float32 {
 	return f.threshold
 }
 
+// SetThreshold sets the threshold level in decibels, clamped to [-100, 0].
 func (f *CompressionFilter) SetThreshold(threshold float32) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -107,6 +122,7 @@ func (f *CompressionFilter) SetThreshold(threshold float32) {
 	f.threshold = sprec.Clamp(threshold, -100.0, 0.0)
 }
 
+// Process applies dynamic range compression to inputFrames and returns the result.
 func (f *CompressionFilter) Process(ctx ProcessContext, inputFrames []audio.Frame) []audio.Frame {
 	f.mu.Lock()
 	attack := f.attack       // store value locally to avoid long locks
