@@ -33,6 +33,14 @@ type Processor interface {
 	Process(ctx ProcessContext, inputFrames []audio.Frame) []audio.Frame
 }
 
+// SampleProcessor is a specialized Processor that operates on individual audio samples
+// rather than frames.
+type SampleProcessor interface {
+
+	// ProcessSample processes a single audio sample and produces an output sample.
+	ProcessSample(inputSample float32) float32
+}
+
 type Pipeline struct {
 	Units []Unit
 }
