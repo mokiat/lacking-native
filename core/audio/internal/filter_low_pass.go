@@ -23,6 +23,7 @@ type LowPassFilter struct {
 	filterR *LowPassSampleFilter
 }
 
+var _ audio.FrequencyFilter = (*LowPassFilter)(nil)
 var _ Processor = (*LowPassFilter)(nil)
 
 // NewLowPassFilter creates a LowPassFilter with a 350 Hz initial cutoff for
@@ -36,6 +37,22 @@ func NewLowPassFilter(sampleRate int) *LowPassFilter {
 		filterL: NewLowPassSampleFilter(sampleRate),
 		filterR: NewLowPassSampleFilter(sampleRate),
 	}
+}
+
+// Frequency returns the cutoff frequency in Hz.
+func (f *LowPassFilter) Frequency() float32 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.cutoffFrequency
+}
+
+// SetFrequency sets the cutoff frequency in Hz.
+func (f *LowPassFilter) SetFrequency(frequency float32) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.cutoffFrequency = frequency
 }
 
 // Process applies the low-pass filter to inputFrames and returns the result.
@@ -70,20 +87,4 @@ func (f *LowPassFilter) Process(ctx ProcessContext, inputFrames []audio.Frame) [
 	}
 
 	return outputFrames
-}
-
-// CutoffFrequency returns the cutoff frequency in Hz.
-func (f *LowPassFilter) CutoffFrequency() float32 {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	return f.cutoffFrequency
-}
-
-// SetCutoffFrequency sets the cutoff frequency in Hz.
-func (f *LowPassFilter) SetCutoffFrequency(frequency float32) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	f.cutoffFrequency = frequency
 }
