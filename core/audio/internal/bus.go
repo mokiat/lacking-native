@@ -10,7 +10,7 @@ import (
 // whenever its topology changes.
 type Bus struct {
 	masterBus *MasterBus
-	playbacks *ds.List[*Playback]
+	playbacks *ds.List[Processor]
 
 	gainFilter        *GainFilter
 	compressionFilter *CompressionFilter
@@ -41,7 +41,7 @@ func NewBus(masterBus *MasterBus, settings audio.BusSettings, sampleRate int, in
 
 	result := &Bus{
 		masterBus: masterBus,
-		playbacks: ds.EmptyList[*Playback](),
+		playbacks: ds.EmptyList[Processor](),
 
 		gainFilter:        NewGainFilter(),
 		compressionFilter: compressionFilter,
@@ -63,19 +63,19 @@ func (b *Bus) Release() {
 }
 
 // AddPlayback registers a playback with this bus.
-func (b *Bus) AddPlayback(playback *Playback) {
+func (b *Bus) AddPlayback(playback Processor) {
 	b.playbacks.Add(playback)
 	b.invalidate()
 }
 
 // RemovePlayback unregisters a playback from this bus.
-func (b *Bus) RemovePlayback(playback *Playback) {
+func (b *Bus) RemovePlayback(playback Processor) {
 	b.playbacks.Remove(playback)
 	b.invalidate()
 }
 
 // Playbacks returns the playbacks currently registered with this bus.
-func (b *Bus) Playbacks() []*Playback {
+func (b *Bus) Playbacks() []Processor {
 	return b.playbacks.Unbox()
 }
 

@@ -119,27 +119,25 @@ func (a *API) CreateBus(settings audio.BusSettings) audio.Bus {
 
 // CreatePlayback creates a non-spatial playback on the given bus.
 func (a *API) CreatePlayback(bus audio.Bus, media audio.Media, settings audio.PlaybackSettings) audio.Playback {
-	return internal.NewPlayback(
+	base := internal.NewBasePlayback(
 		bus.(*internal.Bus),
 		media.(*internal.Media),
 		settings,
 		a.sampleRate,
-		nil,
-		false,
 	)
+	return internal.NewDefaultPlayback(base)
 }
 
 // CreateSpatialPlayback creates a spatially positioned playback on the given
 // bus, attached to the API's shared spatial listener.
 func (a *API) CreateSpatialPlayback(bus audio.Bus, media audio.Media, settings audio.PlaybackSettings) audio.SpatialPlayback {
-	return internal.NewPlayback(
+	base := internal.NewBasePlayback(
 		bus.(*internal.Bus),
 		media.(*internal.Media),
 		settings,
 		a.sampleRate,
-		a.listener,
-		true,
 	)
+	return internal.NewSpatialPlayback(base, a.listener)
 }
 
 // MasterBus returns the master bus for the audio system.
