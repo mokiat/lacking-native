@@ -14,7 +14,6 @@ type SpatialListener struct {
 	mu       sync.Mutex
 	position sprec.Vec3
 	rotation sprec.Quat
-	velocity sprec.Vec3
 }
 
 var _ audio.SpatialListener = (*SpatialListener)(nil)
@@ -25,7 +24,6 @@ func NewSpatialListener() *SpatialListener {
 	return &SpatialListener{
 		position: sprec.ZeroVec3(),
 		rotation: sprec.IdentityQuat(),
-		velocity: sprec.ZeroVec3(),
 	}
 }
 
@@ -59,20 +57,4 @@ func (l *SpatialListener) SetRotation(rotation sprec.Quat) {
 	defer l.mu.Unlock()
 
 	l.rotation = rotation
-}
-
-// Velocity returns the listener's velocity in world space.
-func (l *SpatialListener) Velocity() sprec.Vec3 {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	return l.velocity
-}
-
-// SetVelocity sets the listener's velocity in world space.
-func (l *SpatialListener) SetVelocity(velocity sprec.Vec3) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	l.velocity = velocity
 }
