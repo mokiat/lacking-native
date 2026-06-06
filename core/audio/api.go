@@ -17,6 +17,7 @@ import (
 // It manages the audio device, maintains a triple-buffered processing pipeline,
 // and owns the master bus and spatial listener.
 type API struct {
+	worker     Worker
 	ctx        *malgo.AllocatedContext
 	device     *malgo.Device
 	sampleRate int
@@ -39,13 +40,15 @@ var _ audio.API = (*API)(nil)
 // NewAPI initializes a new API backed by the default miniaudio playback
 // device at 44100 Hz stereo 16-bit output. The audio device starts immediately
 // upon successful return.
-func NewAPI() (*API, error) {
+func NewAPI(worker Worker) (*API, error) {
 	api := &API{
-		ioBuffer:  internal.NewBuffer(128 * 1024),
-		unitInput: make([][]audio.Frame, 0, 128),
+		worker: worker,
 
 		masterBus: internal.NewMasterBus(),
 		listener:  internal.NewSpatialListener(),
+
+		ioBuffer:  internal.NewBuffer(128 * 1024),
+		unitInput: make([][]audio.Frame, 0, 128),
 
 		activePipeline:  internal.NewPipeline(128),
 		pendingPipeline: internal.NewPipeline(128),
@@ -120,6 +123,7 @@ func (a *API) CreateBus(settings audio.BusSettings) audio.Bus {
 // CreatePlayback creates a non-spatial playback on the given bus.
 func (a *API) CreatePlayback(bus audio.Bus, media audio.Media, settings audio.PlaybackSettings) audio.Playback {
 	base := internal.NewBasePlayback(
+		a.worker,
 		bus.(*internal.Bus),
 		media.(*internal.Media),
 		settings,
@@ -132,6 +136,7 @@ func (a *API) CreatePlayback(bus audio.Bus, media audio.Media, settings audio.Pl
 // bus, attached to the API's shared spatial listener.
 func (a *API) CreateSpatialPlayback(bus audio.Bus, media audio.Media, settings audio.PlaybackSettings) audio.SpatialPlayback {
 	base := internal.NewBasePlayback(
+		a.worker,
 		bus.(*internal.Bus),
 		media.(*internal.Media),
 		settings,

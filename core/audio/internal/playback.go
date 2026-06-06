@@ -20,11 +20,11 @@ var _ Processor = (*BasePlayback)(nil)
 
 // NewBasePlayback creates a BasePlayback for the given bus and media.
 // Low-pass and high-pass filters are allocated only when enabled in settings.
-func NewBasePlayback(bus *Bus, media *Media, settings audio.PlaybackSettings, sampleRate int) *BasePlayback {
+func NewBasePlayback(worker Worker, bus *Bus, media *Media, settings audio.PlaybackSettings, sampleRate int) *BasePlayback {
 	result := &BasePlayback{
 		bus: bus,
 
-		source:     NewPlaybackSource(media, sampleRate),
+		source:     NewPlaybackSource(worker, media, sampleRate),
 		gainFilter: NewGainFilter(),
 	}
 	if settings.UseLowPassFilter {
