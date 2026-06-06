@@ -237,10 +237,13 @@ func calculateAzimuthElevationGain(
 	azimuth sprec.Angle,
 	elevation sprec.Angle,
 ) (float32, float32) {
-	// This implementation is based on WebAudio API's approach:
-	// https://webaudio.github.io/web-audio-api/#Spatialization-equal-power-panning
 
-	_ = elevation // elevation is not yet used
+	// Apply elevation compensation to the azimuth angle to simulate the effect
+	// of the sound source being above or below the listener.
+	azimuth *= sprec.Angle(sprec.Cos(elevation))
+
+	// What follows is heavily based on WebAudio API's approach:
+	// https://webaudio.github.io/web-audio-api/#Spatialization-equal-power-panning
 
 	// wrap azimuth to [-pi/2, pi/2]
 	piAngle := sprec.Radians(sprec.Pi)
@@ -253,7 +256,6 @@ func calculateAzimuthElevationGain(
 	}
 
 	panAngle := gog.Ternary(azimuth >= 0.0, azimuth, azimuth+halfPiAngle)
-
 	return sprec.Cos(panAngle), sprec.Sin(panAngle)
 }
 
