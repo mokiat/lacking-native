@@ -201,7 +201,7 @@ const (
 var (
 	// Delay times back-calculated from Freeverb's original sample counts at 44100 Hz.
 	// They are stored as seconds so they scale correctly at other sample rates.
-	reverbCombFilterDelays = [reverbCombFilterCount]float32{
+	reverbCombFilterDelays = [reverbCombFilterCount]float64{
 		0.025306, // 1116 samples @ 44100 Hz
 		0.026939, // 1188 samples @ 44100 Hz
 		0.028957, // 1277 samples @ 44100 Hz
@@ -211,7 +211,7 @@ var (
 		0.035306, // 1557 samples @ 44100 Hz
 		0.036667, // 1617 samples @ 44100 Hz
 	}
-	reverbCombFilterSpread = [reverbCombFilterCount]float32{
+	reverbCombFilterSpread = [reverbCombFilterCount]float64{
 		0.000522, // ~23 samples @ 44100 Hz
 		0.000522,
 		0.000522,
@@ -221,13 +221,13 @@ var (
 		0.000522,
 		0.000522,
 	}
-	reverbAllPassFilterDelays = [reverbAllPassFilterCount]float32{
+	reverbAllPassFilterDelays = [reverbAllPassFilterCount]float64{
 		0.012608, // 556 samples @ 44100 Hz
 		0.010000, // 441 samples @ 44100 Hz
 		0.007732, // 341 samples @ 44100 Hz
 		0.005102, // 225 samples @ 44100 Hz
 	}
-	reverbAllPassFilterSpread = [reverbAllPassFilterCount]float32{
+	reverbAllPassFilterSpread = [reverbAllPassFilterCount]float64{
 		0.000522, // ~23 samples @ 44100 Hz
 		0.000522,
 		0.000522,

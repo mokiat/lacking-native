@@ -28,13 +28,12 @@ var _ Processor = (*Bus)(nil)
 // reverb are only allocated when enabled in settings. invalidate is called
 // whenever the bus topology changes so the pipeline can be rebuilt.
 func NewBus(masterBus *MasterBus, settings audio.BusSettings, sampleRate int, invalidate func()) *Bus {
-	var (
-		compressionFilter *CompressionFilter
-		reverbFilter      *ReverbFilter
-	)
+	var compressionFilter *CompressionFilter
 	if settings.UseCompression {
 		compressionFilter = NewCompressionFilter()
 	}
+
+	var reverbFilter *ReverbFilter
 	if settings.UseReverb {
 		reverbFilter = NewReverbFilter(sampleRate)
 	}

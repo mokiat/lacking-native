@@ -19,7 +19,7 @@ func NewMedia(data audio.MediaData) *Media {
 }
 
 // Length returns the duration of the media in seconds.
-func (m *Media) Length() float32 {
+func (m *Media) Length() float64 {
 	frameCount := len(m.frames)
 	return audio.Seconds(frameCount, m.sampleRate)
 }

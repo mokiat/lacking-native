@@ -37,7 +37,7 @@ func NewBasePlayback(worker Worker, bus *Bus, media *Media, settings audio.Playb
 }
 
 // Start begins playback from the given time offset in seconds.
-func (p *BasePlayback) Start(at float32) {
+func (p *BasePlayback) Start(at float64) {
 	p.source.Start(at)
 }
 
@@ -67,22 +67,22 @@ func (p *BasePlayback) SetLooping(loop bool) {
 }
 
 // LoopStart returns the loop start position in seconds.
-func (p *BasePlayback) LoopStart() float32 {
+func (p *BasePlayback) LoopStart() float64 {
 	return p.source.LoopStart()
 }
 
 // SetLoopStart sets the loop start position in seconds.
-func (p *BasePlayback) SetLoopStart(loopStart float32) {
+func (p *BasePlayback) SetLoopStart(loopStart float64) {
 	p.source.SetLoopStart(loopStart)
 }
 
 // LoopEnd returns the loop end position in seconds.
-func (p *BasePlayback) LoopEnd() float32 {
+func (p *BasePlayback) LoopEnd() float64 {
 	return p.source.LoopEnd()
 }
 
 // SetLoopEnd sets the loop end position in seconds.
-func (p *BasePlayback) SetLoopEnd(loopEnd float32) {
+func (p *BasePlayback) SetLoopEnd(loopEnd float64) {
 	p.source.SetLoopEnd(loopEnd)
 }
 

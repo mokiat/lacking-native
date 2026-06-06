@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/mokiat/gog/opt"
+	"github.com/mokiat/gomath/dprec"
 	"github.com/mokiat/gomath/sprec"
 	"github.com/mokiat/lacking/core/audio"
 )
@@ -21,7 +22,7 @@ type PlaybackSource struct {
 
 	frames     []audio.Frame
 	framesRate int
-	length     float32
+	length     float64
 
 	onFinished func()
 
@@ -29,8 +30,8 @@ type PlaybackSource struct {
 	// any thread.
 	mu        sync.Mutex
 	change    opt.T[playbackChange]
-	loopStart float32
-	loopEnd   float32
+	loopStart float64
+	loopEnd   float64
 	loop      bool
 	rate      float32
 	playing   bool
@@ -67,12 +68,12 @@ func NewPlaybackSource(worker Worker, media *Media, sampleRate int) *PlaybackSou
 
 // Start schedules playback to begin from the given position in seconds,
 // clamped to [0, length].
-func (s *PlaybackSource) Start(at float32) {
+func (s *PlaybackSource) Start(at float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.change = opt.V(playbackChange{
-		position:       sprec.Clamp(at, 0.0, s.length),
+		position:       dprec.Clamp(at, 0.0, s.length),
 		changePosition: true,
 		playing:        true,
 	})
@@ -137,7 +138,7 @@ func (s *PlaybackSource) SetLooping(loop bool) {
 }
 
 // LoopStart returns the loop start position in seconds.
-func (s *PlaybackSource) LoopStart() float32 {
+func (s *PlaybackSource) LoopStart() float64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -145,7 +146,7 @@ func (s *PlaybackSource) LoopStart() float32 {
 }
 
 // SetLoopStart sets the loop start position in seconds.
-func (s *PlaybackSource) SetLoopStart(loopStart float32) {
+func (s *PlaybackSource) SetLoopStart(loopStart float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -153,7 +154,7 @@ func (s *PlaybackSource) SetLoopStart(loopStart float32) {
 }
 
 // LoopEnd returns the loop end position in seconds.
-func (s *PlaybackSource) LoopEnd() float32 {
+func (s *PlaybackSource) LoopEnd() float64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -161,7 +162,7 @@ func (s *PlaybackSource) LoopEnd() float32 {
 }
 
 // SetLoopEnd sets the loop end position in seconds.
-func (s *PlaybackSource) SetLoopEnd(loopEnd float32) {
+func (s *PlaybackSource) SetLoopEnd(loopEnd float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -206,15 +207,15 @@ func (s *PlaybackSource) Process(ctx ProcessContext, _ []audio.Frame) []audio.Fr
 	if change, ok := s.change.Unwrap(); ok {
 		s.playing = change.playing
 		if change.changePosition {
-			s.offset = float64(change.position) * float64(s.framesRate)
+			s.offset = change.position * float64(s.framesRate)
 		}
 		s.change = opt.Unspecified[playbackChange]()
 	}
-	loopStart := float64(s.loopStart) // store value locally to avoid long locks
-	loopEnd := float64(s.loopEnd)     // store value locally to avoid long locks
-	loop := s.loop                    // store value locally to avoid long locks
-	rate := float64(s.rate)           // store value locally to avoid long locks
-	playing := s.playing              // store value locally to avoid long locks
+	loopStart := s.loopStart // store value locally to avoid long locks
+	loopEnd := s.loopEnd     // store value locally to avoid long locks
+	loop := s.loop           // store value locally to avoid long locks
+	rate := float64(s.rate)  // store value locally to avoid long locks
+	playing := s.playing     // store value locally to avoid long locks
 	s.mu.Unlock()
 
 	outputFrames := ctx.Buffer.Allocate(ctx.FrameCount)
@@ -226,7 +227,7 @@ func (s *PlaybackSource) Process(ctx ProcessContext, _ []audio.Frame) []audio.Fr
 	lenFrames := len(s.frames)
 
 	// Convert loop boundaries and length from seconds to frame indices.
-	loopEndFrame := min(loopEnd, float64(s.length)) * float64(s.framesRate)
+	loopEndFrame := min(loopEnd, s.length) * float64(s.framesRate)
 	loopStartFrame := loopStart * float64(s.framesRate)
 	if loop && (loopStartFrame >= loopEndFrame) {
 		loopStartFrame = 0
@@ -283,7 +284,7 @@ func (s *PlaybackSource) notifyFinished() {
 // audio thread. Only one change is buffered at a time; a newer change
 // overwrites an older one.
 type playbackChange struct {
-	position       float32
+	position       float64
 	changePosition bool
 	playing        bool
 }
