@@ -39,6 +39,11 @@ func (b *MasterBus) RemoveBus(bus *Bus) {
 	b.buses.Remove(bus)
 }
 
+// Buses returns the list of child buses registered with the master bus.
+func (b *MasterBus) Buses() []*Bus {
+	return b.buses.Unbox()
+}
+
 // Gain returns the master gain.
 func (b *MasterBus) Gain() float32 {
 	return b.gainFilter.Gain()

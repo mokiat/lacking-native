@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"slices"
 	"sync"
 
 	"github.com/gen2brain/malgo"
@@ -12,12 +13,16 @@ import (
 	"github.com/mokiat/lacking/core/audio"
 )
 
+// API implements the audio.API interface using the miniaudio (malgo) backend.
+// It manages the audio device, maintains a triple-buffered processing pipeline,
+// and owns the master bus and spatial listener.
 type API struct {
 	ctx        *malgo.AllocatedContext
 	device     *malgo.Device
 	sampleRate int
 
 	masterBus *internal.MasterBus
+	listener  *internal.SpatialListener
 
 	ioBuffer  *internal.Buffer
 	unitInput [][]audio.Frame
@@ -31,12 +36,16 @@ type API struct {
 
 var _ audio.API = (*API)(nil)
 
+// NewAPI initializes a new API backed by the default miniaudio playback
+// device at 44100 Hz stereo 16-bit output. The audio device starts immediately
+// upon successful return.
 func NewAPI() (*API, error) {
 	api := &API{
 		ioBuffer:  internal.NewBuffer(128 * 1024),
 		unitInput: make([][]audio.Frame, 0, 128),
 
 		masterBus: internal.NewMasterBus(),
+		listener:  internal.NewSpatialListener(),
 
 		activePipeline:  internal.NewPipeline(128),
 		pendingPipeline: internal.NewPipeline(128),
@@ -93,37 +102,65 @@ func (a *API) Destroy() {
 	a.ctx.Free()
 }
 
+// CreateMedia creates a new media object from the provided media data.
 func (a *API) CreateMedia(data audio.MediaData) audio.Media {
 	return internal.NewMedia(data)
 }
 
+// CreateBus creates a new audio bus registered with the master bus.
 func (a *API) CreateBus(settings audio.BusSettings) audio.Bus {
-	panic("TODO: implement CreateBus")
+	return internal.NewBus(
+		a.masterBus,
+		settings,
+		a.sampleRate,
+		a.invalidate,
+	)
 }
 
+// CreatePlayback creates a non-spatial playback on the given bus.
 func (a *API) CreatePlayback(bus audio.Bus, media audio.Media, settings audio.PlaybackSettings) audio.Playback {
-	panic("TODO")
+	return internal.NewPlayback(
+		bus.(*internal.Bus),
+		media.(*internal.Media),
+		settings,
+		a.sampleRate,
+		nil,
+		false,
+	)
 }
 
+// CreateSpatialPlayback creates a spatially positioned playback on the given
+// bus, attached to the API's shared spatial listener.
 func (a *API) CreateSpatialPlayback(bus audio.Bus, media audio.Media, settings audio.PlaybackSettings) audio.SpatialPlayback {
-	panic("TODO")
+	return internal.NewPlayback(
+		bus.(*internal.Bus),
+		media.(*internal.Media),
+		settings,
+		a.sampleRate,
+		a.listener,
+		true,
+	)
 }
 
+// MasterBus returns the master bus for the audio system.
 func (a *API) MasterBus() audio.MasterBus {
 	return a.masterBus
 }
 
+// SpatialListener returns the spatial listener used for 3D audio positioning.
 func (a *API) SpatialListener() audio.SpatialListener {
-	panic("TODO")
+	return a.listener
 }
 
+// onData is the miniaudio callback invoked on the real-time audio thread to
+// fill the output buffer.
 func (a *API) onData(outputData, _ []byte, frameCount uint32) {
 	pipeline := a.pickPipeline()
 
 	a.ioBuffer.Reset()
 
 	ctx := internal.ProcessContext{
-		SampleRate: int(a.device.SampleRate()),
+		SampleRate: a.sampleRate,
 		FrameCount: int(frameCount),
 		Buffer:     a.ioBuffer,
 	}
@@ -136,6 +173,8 @@ func (a *API) onData(outputData, _ []byte, frameCount uint32) {
 	}
 }
 
+// pickPipeline swaps in the pending pipeline if one is available and returns
+// the active pipeline. Called from the real-time audio thread.
 func (a *API) pickPipeline() *internal.Pipeline {
 	a.pipelineMu.Lock()
 	defer a.pipelineMu.Unlock()
@@ -146,9 +185,11 @@ func (a *API) pickPipeline() *internal.Pipeline {
 	return a.activePipeline
 }
 
+// processPipeline runs every unit in the pipeline in topological order,
+// accumulating outputs into their target units' input buffers, and returns the
+// final mixed output. Called from the real-time audio thread.
 func (a *API) processPipeline(ctx internal.ProcessContext, pipeline *internal.Pipeline) []audio.Frame {
 	a.unitInput = a.unitInput[:0]
-	defer clear(a.unitInput) // clear refs
 	for range len(pipeline.Units) {
 		a.unitInput = append(a.unitInput, a.ioBuffer.Allocate(ctx.FrameCount))
 	}
@@ -163,7 +204,62 @@ func (a *API) processPipeline(ctx internal.ProcessContext, pipeline *internal.Pi
 		}
 	}
 
+	clear(a.unitInput) // clear refs
+
 	return outputFrames
+}
+
+// invalidate rebuilds the processing pipeline on the game thread and makes it
+// available to the audio thread via the triple-buffer swap.
+func (a *API) invalidate() {
+	a.constructPipeline(a.tempPipeline)
+
+	a.pipelineMu.Lock()
+	defer a.pipelineMu.Unlock()
+	a.mustUpdatePipeline = true
+	a.tempPipeline, a.pendingPipeline = a.pendingPipeline, a.tempPipeline
+}
+
+// constructPipeline populates target with units ordered so that each
+// processor's inputs are fully accumulated before it runs (playbacks →
+// buses → master). Units are built in reverse order then flipped, with
+// TargetIndex values adjusted accordingly.
+func (a *API) constructPipeline(target *internal.Pipeline) {
+	clear(target.Units) // clear refs
+	target.Units = target.Units[:0]
+
+	target.Units = append(target.Units, internal.Unit{
+		Processor:   a.masterBus,
+		TargetIndex: -1, // send to output
+	})
+
+	for _, bus := range a.masterBus.Buses() {
+		if !bus.IsPlaying() {
+			continue
+		}
+
+		busUnitIndex := len(target.Units)
+		target.Units = append(target.Units, internal.Unit{
+			Processor:   bus,
+			TargetIndex: 0, // send to master bus
+		})
+
+		for _, playback := range bus.Playbacks() {
+			target.Units = append(target.Units, internal.Unit{
+				Processor:   playback,
+				TargetIndex: busUnitIndex, // send to bus
+			})
+		}
+	}
+
+	count := len(target.Units)
+	for i := range count {
+		unit := &target.Units[i]
+		if unit.TargetIndex >= 0 {
+			unit.TargetIndex = count - unit.TargetIndex - 1
+		}
+	}
+	slices.Reverse(target.Units)
 }
 
 func (a *API) onStop() {
@@ -172,6 +268,8 @@ func (a *API) onStop() {
 	// been observed.
 }
 
+// float32ToInt16 converts a normalized float32 sample in [-1, 1] to int16,
+// using the full range of both positive and negative int16 values.
 func float32ToInt16(value float32) int16 {
 	value = max(-1.0, min(value, 1.0)) // prevent overflow
 	if value >= 0.0 {
@@ -181,6 +279,7 @@ func float32ToInt16(value float32) int16 {
 	}
 }
 
+// applyFrames accumulates source into target by adding each channel sample.
 func applyFrames(target, source []audio.Frame) {
 	for i := range target {
 		target[i].Left += source[i].Left
