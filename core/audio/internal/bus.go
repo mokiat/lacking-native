@@ -49,6 +49,7 @@ func NewBus(masterBus *MasterBus, settings audio.BusSettings, sampleRate int, in
 
 		invalidate: invalidate,
 	}
+
 	masterBus.AddBus(result)
 	invalidate()
 	return result
@@ -64,11 +65,13 @@ func (b *Bus) Release() {
 // AddPlayback registers a playback with this bus.
 func (b *Bus) AddPlayback(playback *Playback) {
 	b.playbacks.Add(playback)
+	b.invalidate()
 }
 
 // RemovePlayback unregisters a playback from this bus.
 func (b *Bus) RemovePlayback(playback *Playback) {
 	b.playbacks.Remove(playback)
+	b.invalidate()
 }
 
 // Gain returns the current gain of the bus.
