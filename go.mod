@@ -1,20 +1,23 @@
 module github.com/mokiat/lacking-native
 
-go 1.25
+go 1.26
 
 require (
-	github.com/gen2brain/malgo v0.11.24
-	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728
-	github.com/hajimehoshi/go-mp3 v0.3.4
-	github.com/mokiat/gblob v0.5.0
-	github.com/mokiat/gog v0.21.0
-	github.com/mokiat/gomath v0.15.0
-	github.com/mokiat/lacking v0.23.0
-	golang.org/x/image v0.33.0
+	github.com/gen2brain/malgo v0.11.25
+	github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20260406072232-3ac4aa2bb164
+	github.com/mokiat/gblob v0.6.0
+	github.com/mokiat/gog v0.22.0
+	github.com/mokiat/gomath v0.16.1
+	github.com/mokiat/lacking v0.23.1-0.20260607172448-d07554f717ee
+	golang.org/x/image v0.41.0
 )
 
 require (
+	github.com/go-audio/audio v1.0.0 // indirect
+	github.com/go-audio/riff v1.0.0 // indirect
+	github.com/go-audio/wav v1.1.0 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 )
