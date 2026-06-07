@@ -90,7 +90,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		return fmt.Errorf("failed to initialize opengl: %w", err)
 	}
 
-	l := newLoop(cfg.locator, cfg.title, window, controller, cfg.audioEnabled)
+	l := newLoop(cfg.locator, cfg.title, window, controller)
 
 	if cfg.cursor != nil {
 		cursor := l.CreateCursor(*cfg.cursor)
@@ -103,5 +103,5 @@ func Run(cfg *Config, controller app.Controller) error {
 		l.SetCursorVisible(false)
 	}
 
-	return l.Run()
+	return l.Run(cfg.audioEnabled)
 }

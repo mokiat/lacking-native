@@ -2,15 +2,14 @@ package app
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/mokiat/gomath/dprec"
-	nativeaudio "github.com/mokiat/lacking-native/audio"
+	nativeaudio "github.com/mokiat/lacking-native/core/audio"
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
-	"github.com/mokiat/lacking/audio"
+	"github.com/mokiat/lacking/core/audio"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
 	"github.com/mokiat/lacking/resource"
@@ -21,17 +20,7 @@ const (
 	taskProcessingTimeout = 30 * time.Millisecond
 )
 
-func newLoop(locator resource.Locator, title string, window *glfw.Window, controller app.Controller, audioEnabled bool) *loop {
-	var audioAPI *nativeaudio.API
-	if audioEnabled {
-		var err error
-		audioAPI, err = nativeaudio.NewAPI()
-		if err != nil {
-			logger.Error("Failed to initialize audio", slog.String("error", err.Error()))
-			audioAPI = nil
-		}
-	}
-
+func newLoop(locator resource.Locator, title string, window *glfw.Window, controller app.Controller) *loop {
 	return &loop{
 		platform:      newPlatform(),
 		locator:       locator,
@@ -39,7 +28,6 @@ func newLoop(locator resource.Locator, title string, window *glfw.Window, contro
 		window:        window,
 		controller:    controller,
 		renderAPI:     glrender.NewAPI(),
-		audioAPI:      audioAPI,
 		tasks:         make(chan func(), taskQueueSize),
 		shouldStop:    false,
 		shouldDraw:    true,
@@ -65,7 +53,7 @@ type loop struct {
 	window            *glfw.Window
 	controller        app.Controller
 	renderAPI         render.API
-	audioAPI          *nativeaudio.API
+	audioAPI          audio.API
 	tasks             chan func()
 	shouldStop        bool
 	shouldDraw        bool
@@ -77,9 +65,16 @@ type loop struct {
 	lastGamepadUpdate time.Time
 }
 
-func (l *loop) Run() error {
-	if l.audioAPI != nil {
-		defer l.audioAPI.Close()
+func (l *loop) Run(audioEnabled bool) error {
+	if audioEnabled {
+		nativeAPI, err := nativeaudio.NewAPI(l)
+		if err != nil {
+			return fmt.Errorf("create native audio api: %w", err)
+		}
+		defer nativeAPI.Destroy()
+		l.audioAPI = nativeAPI
+	} else {
+		l.audioAPI = audio.NewNopAPI()
 	}
 
 	l.controller.OnCreate(l)
