@@ -10,9 +10,9 @@ import (
 	glrender "github.com/mokiat/lacking-native/render"
 	"github.com/mokiat/lacking/app"
 	"github.com/mokiat/lacking/core/audio"
+	"github.com/mokiat/lacking/core/resource"
 	"github.com/mokiat/lacking/debug/metric"
 	"github.com/mokiat/lacking/render"
-	"github.com/mokiat/lacking/resource"
 )
 
 const (

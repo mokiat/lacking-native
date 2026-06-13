@@ -1,21 +1,15 @@
 package app
 
 import (
-	"fmt"
-
 	"github.com/mokiat/lacking/app"
-	"github.com/mokiat/lacking/resource"
+	"github.com/mokiat/lacking/core/resource"
 )
 
 // NewConfig creates a new Config object that contains the minimum
 // required settings.
 func NewConfig(title string, width, height int) *Config {
-	store, err := resource.NewFileStore(".")
-	if err != nil {
-		panic(fmt.Errorf("error creating default file store: %w", err))
-	}
 	return &Config{
-		locator:       store,
+		locator:       nil,
 		title:         title,
 		width:         width,
 		height:        height,
