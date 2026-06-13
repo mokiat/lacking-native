@@ -7,7 +7,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"github.com/mokiat/lacking/resource"
+	"github.com/mokiat/lacking/core/resource"
 	_ "golang.org/x/image/bmp"
 )
 
