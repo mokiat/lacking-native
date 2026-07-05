@@ -38,8 +38,8 @@ func Run(cfg *Config, controller app.Controller) error {
 		windowHeight = videoMode.Height
 	} else {
 		scaleX, scaleY := monitor.GetContentScale()
-		windowWidth = int(float32(cfg.width) * scaleX)
-		windowHeight = int(float32(cfg.height) * scaleY)
+		windowWidth = scaled(cfg.width, scaleX)
+		windowHeight = scaled(cfg.height, scaleY)
 	}
 
 	glfw.WindowHint(glfw.ContextVersionMajor, 4)
@@ -59,21 +59,22 @@ func Run(cfg *Config, controller app.Controller) error {
 	defer window.Destroy()
 
 	if cfg.minWidth != nil || cfg.maxWidth != nil || cfg.minHeight != nil || cfg.maxHeight != nil {
+		scaleX, scaleY := window.GetContentScale()
 		minWidth := glfw.DontCare
 		if cfg.minWidth != nil {
-			minWidth = *cfg.minWidth
+			minWidth = scaled(*cfg.minWidth, scaleX)
 		}
 		minHeight := glfw.DontCare
 		if cfg.minHeight != nil {
-			minHeight = *cfg.minHeight
+			minHeight = scaled(*cfg.minHeight, scaleY)
 		}
 		maxWidth := glfw.DontCare
 		if cfg.maxWidth != nil {
-			maxWidth = *cfg.maxWidth
+			maxWidth = scaled(*cfg.maxWidth, scaleX)
 		}
 		maxHeight := glfw.DontCare
 		if cfg.maxHeight != nil {
-			maxHeight = *cfg.maxHeight
+			maxHeight = scaled(*cfg.maxHeight, scaleY)
 		}
 		window.SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight)
 	}
@@ -108,4 +109,8 @@ func Run(cfg *Config, controller app.Controller) error {
 	}
 
 	return l.Run(cfg.audioEnabled)
+}
+
+func scaled(size int, scale float32) int {
+	return int(float32(size) * scale)
 }
