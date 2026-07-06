@@ -5,12 +5,12 @@ go 1.26
 require (
 	github.com/gen2brain/malgo v0.11.25
 	github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20260406072232-3ac4aa2bb164
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20260628091122-0bd588dc30cf
 	github.com/mokiat/gblob v0.6.0
 	github.com/mokiat/gog v0.22.0
-	github.com/mokiat/gomath v0.16.1
-	github.com/mokiat/lacking v0.23.1-0.20260613221809-df360e49b053
-	golang.org/x/image v0.41.0
+	github.com/mokiat/gomath v0.17.0
+	github.com/mokiat/lacking v0.23.1-0.20260705171748-35b6d9b6812a
+	golang.org/x/image v0.43.0
 )
 
 require (
@@ -19,5 +19,5 @@ require (
 	github.com/go-audio/wav v1.1.0 // indirect
 	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 )
