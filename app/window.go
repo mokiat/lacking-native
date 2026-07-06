@@ -8,6 +8,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 
+	"github.com/mokiat/gog/constr"
 	"github.com/mokiat/lacking/app"
 	_ "github.com/mokiat/lacking/debug/log" // for side effects
 )
@@ -29,8 +30,8 @@ func Run(cfg *Config, controller app.Controller) error {
 	defer glfw.Terminate()
 
 	var (
-		windowWidth  = cfg.width
-		windowHeight = cfg.height
+		windowWidth  int
+		windowHeight int
 		monitor      *glfw.Monitor
 	)
 	if cfg.fullscreen {
@@ -38,7 +39,12 @@ func Run(cfg *Config, controller app.Controller) error {
 		videoMode := monitor.GetVideoMode()
 		windowWidth = videoMode.Width
 		windowHeight = videoMode.Height
+	} else {
+		windowWidth = cfg.width
+		windowHeight = cfg.height
 	}
+
+	glfw.WindowHint(glfw.ScaleToMonitor, glfw.True)
 	glfw.WindowHint(glfw.ContextVersionMajor, 4)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
@@ -55,21 +61,26 @@ func Run(cfg *Config, controller app.Controller) error {
 	defer window.Destroy()
 
 	if cfg.minWidth != nil || cfg.maxWidth != nil || cfg.minHeight != nil || cfg.maxHeight != nil {
+		scaleX, scaleY := window.GetContentScale()
+		width, height := window.GetSize()
+		fbWidth, fbHeight := window.GetFramebufferSize()
+		scaleX *= float32(width) / float32(fbWidth)
+		scaleY *= float32(height) / float32(fbHeight)
 		minWidth := glfw.DontCare
 		if cfg.minWidth != nil {
-			minWidth = *cfg.minWidth
+			minWidth = scaled(*cfg.minWidth, scaleX)
 		}
 		minHeight := glfw.DontCare
 		if cfg.minHeight != nil {
-			minHeight = *cfg.minHeight
+			minHeight = scaled(*cfg.minHeight, scaleY)
 		}
 		maxWidth := glfw.DontCare
 		if cfg.maxWidth != nil {
-			maxWidth = *cfg.maxWidth
+			maxWidth = scaled(*cfg.maxWidth, scaleX)
 		}
 		maxHeight := glfw.DontCare
 		if cfg.maxHeight != nil {
-			maxHeight = *cfg.maxHeight
+			maxHeight = scaled(*cfg.maxHeight, scaleY)
 		}
 		window.SetSizeLimits(minWidth, minHeight, maxWidth, maxHeight)
 	}
@@ -104,4 +115,12 @@ func Run(cfg *Config, controller app.Controller) error {
 	}
 
 	return l.Run(cfg.audioEnabled)
+}
+
+func scaled[T constr.Numeric](size T, scale float32) T {
+	return T(float64(size) * float64(scale))
+}
+
+func invScaled[T constr.Numeric](size T, scale float32) T {
+	return T(float64(size) / max(1e-6, float64(scale)))
 }

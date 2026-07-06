@@ -28,6 +28,8 @@ func newLoop(locator resource.Locator, title string, window *glfw.Window, contro
 		window:        window,
 		controller:    controller,
 		renderAPI:     glrender.NewAPI(),
+		scaleX:        1.0,
+		scaleY:        1.0,
 		tasks:         make(chan func(), taskQueueSize),
 		shouldStop:    false,
 		shouldDraw:    true,
@@ -54,6 +56,8 @@ type loop struct {
 	controller        app.Controller
 	renderAPI         render.API
 	audioAPI          audio.API
+	scaleX            float32
+	scaleY            float32
 	tasks             chan func()
 	shouldStop        bool
 	shouldDraw        bool
@@ -81,17 +85,18 @@ func (l *loop) Run(audioEnabled bool) error {
 
 	l.window.SetRefreshCallback(l.onGLFWRefresh)
 
-	l.window.SetSizeCallback(l.onGLFWSize)
-	width, height := l.window.GetSize()
-	l.onGLFWSize(l.window, width, height)
-
 	l.window.SetContentScaleCallback(l.onGLFWContentScale)
-	scaleX, scaleY := l.window.GetContentScale()
-	l.onGLFWContentScale(l.window, scaleX, scaleY)
-
+	l.window.SetSizeCallback(l.onGLFWSize)
 	l.window.SetFramebufferSizeCallback(l.onGLFWFramebufferSize)
-	width, height = l.window.GetFramebufferSize()
-	l.onGLFWFramebufferSize(l.window, width, height)
+
+	scaleX, scaleY := l.window.GetContentScale()
+	width, height := l.window.GetSize()
+	fbWidth, fbHeight := l.window.GetFramebufferSize()
+
+	l.scaleX = scaleX * float32(width) / float32(fbWidth)
+	l.scaleY = scaleY * float32(height) / float32(fbHeight)
+	l.onGLFWSize(l.window, width, height)
+	l.onGLFWFramebufferSize(l.window, fbWidth, fbHeight)
 
 	l.window.SetKeyCallback(l.onGLFWKey)
 	l.window.SetCharCallback(l.onGLFWChar)
@@ -166,11 +171,15 @@ func (l *loop) SetTitle(title string) {
 }
 
 func (l *loop) Size() (int, int) {
-	return l.window.GetSize()
+	width, height := l.window.GetSize()
+	return invScaled(width, l.scaleX), invScaled(height, l.scaleY)
 }
 
 func (l *loop) SetSize(width, height int) {
-	l.window.SetSize(width, height)
+	l.window.SetSize(
+		scaled(width, l.scaleX),
+		scaled(height, l.scaleY),
+	)
 }
 
 func (l *loop) FramebufferSize() (int, int) {
@@ -306,11 +315,19 @@ func (l *loop) onGLFWRefresh(w *glfw.Window) {
 }
 
 func (l *loop) onGLFWSize(w *glfw.Window, width int, height int) {
-	l.controller.OnResize(l, width, height)
+	l.controller.OnResize(l,
+		invScaled(width, l.scaleX),
+		invScaled(height, l.scaleY),
+	)
 }
 
 func (l *loop) onGLFWContentScale(w *glfw.Window, scaleX, scaleY float32) {
-	// TODO: Track internally and scale everything. Also trigger an OnResize event.
+	width, height := l.window.GetSize()
+	fbWidth, fbHeight := l.window.GetFramebufferSize()
+	l.scaleX = scaleX * float32(width) / float32(fbWidth)
+	l.scaleY = scaleY * float32(height) / float32(fbHeight)
+
+	l.onGLFWSize(l.window, width, height)
 }
 
 func (l *loop) onGLFWFramebufferSize(w *glfw.Window, width int, height int) {
@@ -342,8 +359,8 @@ func (l *loop) onGLFWChar(w *glfw.Window, char rune) {
 func (l *loop) onGLFWCursorPos(w *glfw.Window, xpos float64, ypos float64) {
 	l.controller.OnMouseEvent(l, app.MouseEvent{
 		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
+		X:      int(invScaled(xpos, l.scaleX)),
+		Y:      int(invScaled(ypos, l.scaleY)),
 		Action: app.MouseActionMove,
 	})
 }
@@ -358,8 +375,8 @@ func (l *loop) onGLFWCursorEnter(w *glfw.Window, entered bool) {
 	xpos, ypos := l.window.GetCursorPos()
 	l.controller.OnMouseEvent(l, app.MouseEvent{
 		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
+		X:      int(invScaled(xpos, l.scaleX)),
+		Y:      int(invScaled(ypos, l.scaleY)),
 		Action: eventType,
 	})
 }
@@ -384,8 +401,8 @@ func (l *loop) onGLFWMouseButton(w *glfw.Window, button glfw.MouseButton, action
 	}
 	l.controller.OnMouseEvent(l, app.MouseEvent{
 		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
+		X:      int(invScaled(xpos, l.scaleX)),
+		Y:      int(invScaled(ypos, l.scaleY)),
 		Action: eventType,
 		Button: eventButton,
 	})
@@ -395,8 +412,8 @@ func (l *loop) onGLFWScroll(w *glfw.Window, xoff float64, yoff float64) {
 	xpos, ypos := l.window.GetCursorPos()
 	l.controller.OnMouseEvent(l, app.MouseEvent{
 		Index:   0,
-		X:       int(xpos),
-		Y:       int(ypos),
+		X:       int(invScaled(xpos, l.scaleX)),
+		Y:       int(invScaled(ypos, l.scaleY)),
 		Action:  app.MouseActionScroll,
 		ScrollX: xoff * 20.0,
 		ScrollY: yoff * 20.0,
@@ -407,8 +424,8 @@ func (l *loop) onGLFWMouseDrop(w *glfw.Window, names []string) {
 	xpos, ypos := l.window.GetCursorPos()
 	l.controller.OnMouseEvent(l, app.MouseEvent{
 		Index:  0,
-		X:      int(xpos),
-		Y:      int(ypos),
+		X:      int(invScaled(xpos, l.scaleX)),
+		Y:      int(invScaled(ypos, l.scaleY)),
 		Action: app.MouseActionDrop,
 		Payload: app.FilepathPayload{
 			Paths: names,
