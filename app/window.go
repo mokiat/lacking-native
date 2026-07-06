@@ -9,6 +9,7 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"github.com/mokiat/gog"
+	"github.com/mokiat/gog/constr"
 	"github.com/mokiat/lacking/app"
 	_ "github.com/mokiat/lacking/debug/log" // for side effects
 )
@@ -42,6 +43,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		windowHeight = scaled(cfg.height, scaleY)
 	}
 
+	glfw.WindowHint(glfw.ScaleToMonitor, glfw.True)
 	glfw.WindowHint(glfw.ContextVersionMajor, 4)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
@@ -111,6 +113,10 @@ func Run(cfg *Config, controller app.Controller) error {
 	return l.Run(cfg.audioEnabled)
 }
 
-func scaled(size int, scale float32) int {
-	return int(float32(size) * scale)
+func scaled[T constr.Numeric](size T, scale float32) T {
+	return T(float64(size) * float64(scale))
+}
+
+func invScaled[T constr.Numeric](size T, scale float32) T {
+	return T(float64(size) / max(1e-6, float64(scale)))
 }
