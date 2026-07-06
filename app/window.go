@@ -62,6 +62,10 @@ func Run(cfg *Config, controller app.Controller) error {
 
 	if cfg.minWidth != nil || cfg.maxWidth != nil || cfg.minHeight != nil || cfg.maxHeight != nil {
 		scaleX, scaleY := window.GetContentScale()
+		width, height := window.GetSize()
+		fbWidth, fbHeight := window.GetFramebufferSize()
+		scaleX *= float32(width) / float32(fbWidth)
+		scaleY *= float32(height) / float32(fbHeight)
 		minWidth := glfw.DontCare
 		if cfg.minWidth != nil {
 			minWidth = scaled(*cfg.minWidth, scaleX)
