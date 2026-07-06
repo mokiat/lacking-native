@@ -86,16 +86,17 @@ func (l *loop) Run(audioEnabled bool) error {
 	l.window.SetRefreshCallback(l.onGLFWRefresh)
 
 	l.window.SetContentScaleCallback(l.onGLFWContentScale)
-	scaleX, scaleY := l.window.GetContentScale()
-	l.onGLFWContentScale(l.window, scaleX, scaleY)
-
 	l.window.SetSizeCallback(l.onGLFWSize)
-	width, height := l.window.GetSize()
-	l.onGLFWSize(l.window, width, height)
-
 	l.window.SetFramebufferSizeCallback(l.onGLFWFramebufferSize)
-	width, height = l.window.GetFramebufferSize()
-	l.onGLFWFramebufferSize(l.window, width, height)
+
+	scaleX, scaleY := l.window.GetContentScale()
+	width, height := l.window.GetSize()
+	fbWidth, fbHeight := l.window.GetFramebufferSize()
+
+	l.scaleX = scaleX * float32(width) / float32(fbWidth)
+	l.scaleY = scaleY * float32(height) / float32(fbHeight)
+	l.onGLFWSize(l.window, width, height)
+	l.onGLFWFramebufferSize(l.window, fbWidth, fbHeight)
 
 	l.window.SetKeyCallback(l.onGLFWKey)
 	l.window.SetCharCallback(l.onGLFWChar)
@@ -321,10 +322,11 @@ func (l *loop) onGLFWSize(w *glfw.Window, width int, height int) {
 }
 
 func (l *loop) onGLFWContentScale(w *glfw.Window, scaleX, scaleY float32) {
-	l.scaleX = scaleX
-	l.scaleY = scaleY
-
 	width, height := l.window.GetSize()
+	fbWidth, fbHeight := l.window.GetFramebufferSize()
+	l.scaleX = scaleX * float32(width) / float32(fbWidth)
+	l.scaleY = scaleY * float32(height) / float32(fbHeight)
+
 	l.onGLFWSize(l.window, width, height)
 }
 
