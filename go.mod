@@ -9,7 +9,7 @@ require (
 	github.com/mokiat/gblob v0.6.0
 	github.com/mokiat/gog v0.22.0
 	github.com/mokiat/gomath v0.17.0
-	github.com/mokiat/lacking v0.23.1-0.20260705171748-35b6d9b6812a
+	github.com/mokiat/lacking v0.23.1-0.20260706205948-6dd4f23e3523
 	golang.org/x/image v0.43.0
 )
 
