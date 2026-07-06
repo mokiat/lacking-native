@@ -92,6 +92,9 @@ func (l *loop) Run(audioEnabled bool) error {
 	scaleX, scaleY := l.window.GetContentScale()
 	width, height := l.window.GetSize()
 	fbWidth, fbHeight := l.window.GetFramebufferSize()
+	fmt.Println("Content scale:", scaleX, scaleY)
+	fmt.Println("Window size:", width, height)
+	fmt.Println("Framebuffer size:", fbWidth, fbHeight)
 
 	l.scaleX = scaleX * float32(width) / float32(fbWidth)
 	l.scaleY = scaleY * float32(height) / float32(fbHeight)
