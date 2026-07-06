@@ -8,7 +8,6 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 
-	"github.com/mokiat/gog"
 	"github.com/mokiat/gog/constr"
 	"github.com/mokiat/lacking/app"
 	_ "github.com/mokiat/lacking/debug/log" // for side effects
@@ -30,17 +29,19 @@ func Run(cfg *Config, controller app.Controller) error {
 	}
 	defer glfw.Terminate()
 
-	monitor := glfw.GetPrimaryMonitor()
-
-	var windowWidth, windowHeight int
+	var (
+		windowWidth  int
+		windowHeight int
+		monitor      *glfw.Monitor
+	)
 	if cfg.fullscreen {
+		monitor = glfw.GetPrimaryMonitor()
 		videoMode := monitor.GetVideoMode()
 		windowWidth = videoMode.Width
 		windowHeight = videoMode.Height
 	} else {
-		scaleX, scaleY := monitor.GetContentScale()
-		windowWidth = scaled(cfg.width, scaleX)
-		windowHeight = scaled(cfg.height, scaleY)
+		windowWidth = cfg.width
+		windowHeight = cfg.height
 	}
 
 	glfw.WindowHint(glfw.ScaleToMonitor, glfw.True)
@@ -53,8 +54,7 @@ func Run(cfg *Config, controller app.Controller) error {
 		glfw.WindowHint(glfw.Maximized, glfw.True)
 	}
 
-	windowMonitor := gog.Ternary(cfg.fullscreen, monitor, nil)
-	window, err := glfw.CreateWindow(windowWidth, windowHeight, cfg.title, windowMonitor, nil)
+	window, err := glfw.CreateWindow(windowWidth, windowHeight, cfg.title, monitor, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create glfw window: %w", err)
 	}
