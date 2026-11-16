@@ -153,7 +153,7 @@ func (f *SpatialFilter) Process(ctx ProcessContext, inputFrames []audio.Frame) [
 		listenerRotation,
 	)
 
-	leftGain, rightGain := calculateAzimuthElevationGain(
+	leftGain, rightGain, isLeftSide := calculateAzimuthElevationGain(
 		azimuth,
 		elevation,
 	)
@@ -175,7 +175,10 @@ func (f *SpatialFilter) Process(ctx ProcessContext, inputFrames []audio.Frame) [
 
 	outputFrames := ctx.Buffer.Allocate(ctx.FrameCount)
 
-	if azimuth < 0.0 {
+	// NOTE: The side must come from the gain calculation and not from the
+	// azimuth above, since the two can disagree once the azimuth is wrapped
+	// (e.g. an emitter that is directly behind the listener).
+	if isLeftSide {
 		for i, frame := range inputFrames {
 			outputFrames[i] = audio.Frame{
 				Left:  sampleGain * ((frame.Right * leftGain) + frame.Left),
@@ -232,15 +235,13 @@ func calculateAzimuthElevation(
 
 // calculateAzimuthElevationGain returns the left and right channel gain
 // factors for the given azimuth and elevation, using the WebAudio equal-power
-// panning algorithm.
+// panning algorithm. The returned flag reports whether the emitter is
+// considered to be on the left side of the listener, which determines how the
+// gain factors are to be applied to the channels.
 func calculateAzimuthElevationGain(
 	azimuth sprec.Angle,
 	elevation sprec.Angle,
-) (float32, float32) {
-
-	// Apply elevation compensation to the azimuth angle to simulate the effect
-	// of the sound source being above or below the listener.
-	azimuth *= sprec.Angle(sprec.Cos(elevation))
+) (float32, float32, bool) {
 
 	// What follows is heavily based on WebAudio API's approach:
 	// https://webaudio.github.io/web-audio-api/#Spatialization-equal-power-panning
@@ -255,8 +256,16 @@ func calculateAzimuthElevationGain(
 		azimuth = piAngle - azimuth
 	}
 
-	panAngle := gog.Ternary(azimuth >= 0.0, azimuth, azimuth+halfPiAngle)
-	return sprec.Cos(panAngle), sprec.Sin(panAngle)
+	// Apply elevation compensation to the azimuth angle to simulate the effect
+	// of the sound source being above or below the listener. This is done
+	// after the wrapping, as otherwise a source that is behind the listener
+	// and above or below it would jump from one side to the other when it
+	// crosses the center line.
+	azimuth *= sprec.Angle(sprec.Cos(elevation))
+
+	isLeftSide := azimuth < 0.0
+	panAngle := gog.Ternary(isLeftSide, azimuth+halfPiAngle, azimuth)
+	return sprec.Cos(panAngle), sprec.Sin(panAngle), isLeftSide
 }
 
 // calculateDistanceGain returns the gain factor for the given distance, using
