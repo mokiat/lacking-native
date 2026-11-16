@@ -276,7 +276,8 @@ func calculateDistanceGain(distance float32) float32 {
 
 // calculateConeGain returns the gain factor based on the angle between the
 // emitter's forward direction and the direction to the listener, interpolating
-// between 1.0 and outerConeGain across the inner and outer cone angles.
+// between 1.0 and outerConeGain across the inner and outer cone angles. The
+// cone angles are full opening angles, matching the WebAudio API.
 func calculateConeGain(
 	directionZ sprec.Vec3,
 	listenerOffset sprec.Vec3,
@@ -292,14 +293,23 @@ func calculateConeGain(
 
 	dot := sprec.Vec3Dot(directionZ, sprec.Vec3Quot(listenerOffset, distance))
 
+	// The cone angles describe the full opening of the cone, which is centered
+	// on the forward direction, whereas the relative angle is the deviation
+	// from that direction. Hence, the comparison is done against half angles.
+	halfInnerConeAngle := innerConeAngle / 2.0
+	halfOuterConeAngle := outerConeAngle / 2.0
+
+	// NOTE: The inner check needs to be inclusive. Otherwise, when the two
+	// angles are equal (e.g. the 360 degree default) and the listener is
+	// exactly on the boundary, the interpolation would divide by zero.
 	relativeAngle := sprec.Acos(sprec.Clamp(dot, -1.0, 1.0))
 	switch {
-	case relativeAngle < innerConeAngle:
+	case relativeAngle <= halfInnerConeAngle:
 		return 1.0 // fully audible within the inner cone
-	case relativeAngle > outerConeAngle:
+	case relativeAngle > halfOuterConeAngle:
 		return outerConeGain // attenuated outside the outer cone
 	default:
-		ratio := float32((relativeAngle - innerConeAngle) / (outerConeAngle - innerConeAngle))
+		ratio := float32((relativeAngle - halfInnerConeAngle) / (halfOuterConeAngle - halfInnerConeAngle))
 		return sprec.Mix(1.0, outerConeGain, ratio)
 	}
 }
